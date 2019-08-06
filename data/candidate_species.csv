@@ -1,0 +1,21 @@
+species,mean,gbif_occs,tax_prob,quartile
+Leptotes marina,-0.589828498,10950,FALSE,1
+Nymphalis antiopa,-0.482808947,85082,FALSE,1
+Danaus plexippus,-0.464710487,222708,FALSE,1
+Vanessa virginiensis,-0.346722441,11007,FALSE,1
+Colias philodice (eriphyle),-0.346569632,15800,FALSE,1
+Colias eurytheme,-0.271397483,24016,FALSE,2
+Vanessa atalanta,-0.249177722,802789,FALSE,2
+Pieris rapae,-0.223634284,1058681,FALSE,2
+Glaucopsyche lygdamus,-0.201664996,10185,FALSE,2
+Strymon melinus,-0.165254699,10948,FALSE,2
+Everes comyntas,-0.147252965,6022,FALSE,3
+Hylephila phyleus,-0.143006838,10488,FALSE,3
+Pyrgus communis,-0.133070825,6494,FALSE,3
+Pieris napi,-0.084543532,1009001,FALSE,3
+Vanessa cardui,-0.049515982,403277,FALSE,3
+Junonia coenia,-0.026935997,16125,FALSE,4
+Parnassius clodius,0.067358757,6171,FALSE,4
+Battus philenor,0.1726922,12015,FALSE,4
+Epargyreus clarus,0.499870865,12372,FALSE,4
+Agraulis vanillae,4.398083555,15736,FALSE,4
