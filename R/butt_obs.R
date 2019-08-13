@@ -29,11 +29,14 @@ butt_obs = function(names){
   for (i in 1:length(names)){
     sub = occ(query = names[i], from = "gbif", limit = 100000, has_coords=TRUE, 
               gbifopts=list(continent='north_america'))
-    bind_rows(df, sub$gbif$data[[1]])
+    df = bind_rows(df, sub$gbif$data[[1]])
   }
   return(df)
 }
 
-test = butt_obs(names)
+#Running function above
+butterfly_data = butt_obs(names) %>%
+  select(name, longitude, latitude, key, family, genus, species, stateProvince, 
+         year, month, day, eventDate, countryCode, county)
 
-
+write_csv(butterfly_data, './data/candidate_occurences.csv')
