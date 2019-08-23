@@ -78,10 +78,12 @@ get_terraclim = function(lat_range, lon_range, env_variable, path=NULL) {
       
       data <-var.get.nc(nc, variable = env_variable,start = start, count,unpack=TRUE)    #! argument change: 'variable' instead of 'varid'  # Output is now a matrix
   ppt_sub_list[[l]] = data
+  rm(data)
   
     }
     #binding each sub list into the main list
     ppt_list[[n]] = ppt_sub_list
+    rm(ppt_sub_list)
 
   }
   #unit test to see if above is working
@@ -95,10 +97,12 @@ get_terraclim = function(lat_range, lon_range, env_variable, path=NULL) {
   for(i in 1:8) {
     test_col_bound[[i]] = abind(ppt_list[[i]], along=2)
   }
+  rm(ppt_list)
   #unit test
   print(str(test_col_bound))
   
   glued = abind(test_col_bound, along=1)
+  rm(test_col_bound)
   print(str(glued))
   return(glued)
   
