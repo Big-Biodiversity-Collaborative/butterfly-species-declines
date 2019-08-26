@@ -1,7 +1,7 @@
 #Script to get and combine big terraclim data
 #Keaton Wilson
 #keatonwilson@me.com
-#2019-08-21
+#2019-08-26
 
 #RNetCDF
 library(RNetCDF)
@@ -9,7 +9,9 @@ library(tidyverse)
 library(abind)
 
 
-get_terraclim = function(lat_range, lon_range, env_variable, path=NULL) {
+#A note - don't put the file (in the file argument below in the terraclim folder - as this get's cleaned out once the function finishes buildin)
+
+get_terraclim = function(lat_range, lon_range, env_variable, file=NULL) {
   #Breaking the lat range into 4 chunks
   lat_diff = (max(lat_range)-min(lat_range))/8
   
@@ -46,15 +48,13 @@ get_terraclim = function(lat_range, lon_range, env_variable, path=NULL) {
   
   #Terraclim
   
-  #initializing a list to pipe into
-  ppt_list = list()
-  
+ #going to loop through the blocks and write each chunk to disk
+ 
   for(n in 1:8){
     #iterating through each lat range in the outer loop
     lat.range = lat_list[[n]]
     
     #initializing the sub_list
-    ppt_sub_list = list()
     
     #iterating through each lon within each lat for the inner loop
     for(l in 1:8) {
@@ -77,43 +77,60 @@ get_terraclim = function(lat_range, lon_range, env_variable, path=NULL) {
       # read in the full period of record using aggregated files
       
       data <-var.get.nc(nc, variable = env_variable,start = start, count,unpack=TRUE)    #! argument change: 'variable' instead of 'varid'  # Output is now a matrix
-  ppt_sub_list[[l]] = data
-  rm(data)
-  
+      save_name = paste0("./data/terraclim/", paste(paste("chunk", n, l, sep = "_"), "rds", sep = "."))
+      saveRDS(data, file = save_name)
+      rm(data)
     }
-    #binding each sub list into the main list
-    ppt_list[[n]] = ppt_sub_list
-    rm(ppt_sub_list)
-
   }
   #unit test to see if above is working
-  print(str(ppt_list))
+  print(list.files("./data/terraclim/"))
   # return(ppt_list)
+
+  #Binding the chunks together across longitude first and writing to disk
+  file_list = list.files("./data/terraclim", full.names = TRUE)
   
-  #Binding the matrices together
-  # Binding each latitude range together
-  # Col bind first, then r bind for one big matrix
-  test_col_bound = list()
   for(i in 1:8) {
-    test_col_bound[[i]] = abind(ppt_list[[i]], along=2)
-  }
-  rm(ppt_list)
-  #unit test
-  print(str(test_col_bound))
-  
-  glued = abind(test_col_bound, along=1)
-  rm(test_col_bound)
-  print(str(glued))
-  return(glued)
-  
-  if(is.null(path)) {
+    #Setting up filenames for each "row"
+    str_search = file_list[str_detect(file_list, paste0("_", i, "_"))]
     
-  } else{
-  saveRDS(glued, file = path)
+    #initializing list
+    chunk_list = list()
+    
+    #iterating
+      for(a in 1:8) {
+        chunk_list[[a]] = readRDS(str_search[i])
+      }
+    #Binding columns together 
+    big_wide_chunk = abind(chunk_list, along=2)
+    
+    
+    saveRDS(big_wide_chunk, paste0("./data/terraclim/", paste(paste("wide_chunk", i, sep = "_"), "rds", sep = ".")))
+    rm(big_wide_chunk)
   }
+  #Binding all the wide chunks together and writing to disk
+  
+  #initializing list
+  wide_chunk_list = list()
+  
+  #Making names
+  wide_chunk_names = list.files("./data/terraclim", full.names = TRUE)
+  wide_chunk_names = wide_chunk_names[str_detect(wide_chunk_names, "wide")]
+  
+  #reading in
+  for(i in 1:8){
+    wide_chunk_list[[i]] = readRDS(wide_chunk_names[i])
+  }
+  
+  #binding
+  glued = abind(wide_chunk_list, along=1)
+  rm(wide_chunk_list)
+  print(str(glued))
+  saveRDS(glued, file)
+  rm(glued)
+  
+  #Cleaning up
+  file.remove(list.files("./data/terraclim", full.names = TRUE))
 }
-
-
 
 #Testing
 # lat.range=c(5, 66)        #! Ranges instead of point values. Order does not matter
@@ -121,4 +138,4 @@ get_terraclim = function(lat_range, lon_range, env_variable, path=NULL) {
 # 
 # test = get_terraclim(env_variable = "ppt", lat_range = c(40, 66), lon_range = c(-166, -160))
 # 
-big_test = get_terraclim(env_variable = "ppt", lat_range = c(15, 66), lon_range = c(-140, -50), path = "./data/prcp.rds")
+big_test = get_terraclim(env_variable = "ppt", lat_range = c(15, 66), lon_range = c(-140, -60), file = "./data/prcp.rds")
