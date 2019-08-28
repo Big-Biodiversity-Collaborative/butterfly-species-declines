@@ -15,43 +15,43 @@ library(raster)
 41*12
 
 #Reading in the files
-prcp = readRDS("./data/terraclim/prcp.rds")
+prcp = readRDS("./data/prcp.rds")
 #Getting rid of weirdly high values in prcp
 prcp = ifelse(prcp > 10000, NA, prcp)
 
 prcp_t1 = prcp[,,1:492]
-prcp_t2 = prcp[,,493:720]
+prcp_t2 = prcp[,,493:732]
 rm(prcp)
 
-tmin = readRDS("./data/terraclim/tmin.rds")
+tmin = readRDS("./data/tmin.rds")
 tmin_t1 = tmin[,,1:492]
-tmin_t2 = tmin[,,493:720]
+tmin_t2 = tmin[,,493:732]
 rm(tmin)
 
-tmax = readRDS("./data/terraclim/tmax.rds")
+tmax = readRDS("./data/tmax.rds")
 tmax_t1 = tmax[,,1:492]
-tmax_t2 = tmax[,,493:720]
+tmax_t2 = tmax[,,493:732]
 rm(tmax)
 
-lat.range=c(10, 85)        #! Ranges instead of point values. Order does not matter
-lon.range=c(-180, -50)
+lat_range = c(15, 66) 
+lon_range = c(-140, -60)
 
 #Changing to rasterbricks
 prcp_t1_raster = t(brick(prcp_t1, crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0",
-                         xmn = -180,
-                         xmx = -50,
-                         ymn = 10,
-                         ymx = 85))
+                         xmn = -140,
+                         xmx = -60,
+                         ymn = 15,
+                         ymx = 66))
 tmin_t1_raster = t(brick(tmin_t1, crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0",
-                         xmn = -180,
-                         xmx = -50,
-                         ymn = 10,
-                         ymx = 85))
+                         xmn = -140,
+                         xmx = -60,
+                         ymn = 15,
+                         ymx = 66))
 tmax_t1_raster = t(brick(tmax_t1, crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0",
-                         xmn = -180,
-                         xmx = -50,
-                         ymn = 10,
-                         ymx = 85))
+                         xmn = -140,
+                         xmx = -60,
+                         ymn = 15,
+                         ymx = 66))
 
 ##Great. This works - but it outputs a rasterbrick, not sure how that will work with stuff feeding into a raster stack below. 
 biovar_list_t1 = list() # Generating empty list to feed into
