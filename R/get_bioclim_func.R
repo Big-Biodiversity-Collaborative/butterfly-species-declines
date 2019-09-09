@@ -102,15 +102,20 @@ get_bioclim = function(lat_range, lon_range) {
       prcp_t1 = temp_list[[1]][,,1:492]
       prcp_t2 = temp_list[[1]][,,493:732]
 
-      print(prcp_t1)
-      print(prcp_t2)
-#       tmin_t1 = temp_list[[3]][,,1:492]
-#       tmin_t2 = temp_list[[3]][,,493:732]
-# 
-#       tmax_t1 = temp_list[[2]][,,1:492]
-#       tmax_t2 = temp_list[[2]][,,493:732]
-# 
-#       #test
+      tmin_t1 = temp_list[[3]][,,1:492]
+      tmin_t2 = temp_list[[3]][,,493:732]
+
+      tmax_t1 = temp_list[[2]][,,1:492]
+      tmax_t2 = temp_list[[2]][,,493:732]
+      
+      #Rasterizing
+      prcp_t1_raster = t(brick(prcp_t1, crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0",
+                               xmn = min(lat_list[[]]),
+                               xmx = max(lat_range),
+                               ymn = min(lon_range),
+                               ymx = 85))
+
+      #test
 #       biovar_t1 = biovars(prec = prcp_t1,
 #                           tmin = tmin_t1,
 #                           tmax = tmax_t1)

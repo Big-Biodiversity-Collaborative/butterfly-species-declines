@@ -84,3 +84,79 @@ pull_terraclim = function(lat_range, lon_range){
       
     }
 }
+
+
+# Separating years -------------------------------------------
+
+env_var_year_split = function(terraclim_data) {
+  #Getting rid of weirdly high values in prcp
+  terraclim_data = ifelse(terraclim_data > 10000, NA, terraclim_data)
+  
+  terraclim_data_t1 = terraclim_data[,,1:492]
+  terraclim_data_t2 = terraclim_data[,,493:732]
+  
+  terraclim_data_t1_t2_list = list(terraclim_data_t1, terraclim_data_t2)
+  return(terraclim_data_t1_t2_list)
+}
+
+
+
+# Bioclim Var Calculation -------------------------------------------------
+
+bioclim_calc = function(prcp, tmax, tmin, lat_range, lon_range) {
+  #rasterizing
+  prcp_raster = t(brick(prcp, 
+                             crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", 
+                             xmn = min(lon_range),
+                             xmx = max(lon_range),
+                             ymn = min(lat_range),
+                             ymx = max(lat_range)))
+  tmax_raster = t(brick(tmax, 
+                        crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", 
+                        xmn = min(lon_range),
+                        xmx = max(lon_range),
+                        ymn = min(lat_range),
+                        ymx = max(lat_range)))
+  tmin_raster = t(brick(prcp, 
+                        crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", 
+                        xmn = min(lon_range),
+                        xmx = max(lon_range),
+                        ymn = min(lat_range),
+                        ymx = max(lat_range)))
+  
+  biovar_list = list() # Generating empty list to feed into
+  length = dim(prcp_raster)[3]/12 #How many times are we going to cycle through?
+  seq = 1:12 #initalizing sequence
+  
+  for(i in 1:length) {
+    precip_sub = prcp_raster[[seq]]
+    tmin_sub = tmin_raster[[seq]]
+    tmax_sub = tmax_raster[[seq]]
+    
+    biovar_list[[i]] = biovars(prec = precip_sub,
+                                  tmin = tmin_sub,
+                                  tmax = tmax_sub)
+    seq = seq + 12
+    print(seq)
+  }
+                       
+return(biovar_list)       
+  
+}
+
+
+# Averaging over entire time period ---------------------------------------
+
+bioclim_averaging = function(biovar_list, lat)
+biovar_avg_combined = raster::brick(nl = 19, nrows = 720, ncols = 696, 
+                                       xmn = -180,
+                                       xmx = -50,
+                                       ymn = 10,
+                                       ymx = 85)
+for(i in 1:19) {
+  biovar_sublist = lapply(biovar_list_t1, '[[', i) #pulls out each bioclim variable iteratively
+  biovar_substack = stack(biovar_sublist) #combines all years into a raster stack
+  biovar_avg = calc(biovar_substack, fun = mean) #Calculates the average for each var
+  biovar_avg_combined_t1[[i]] = biovar_avg
+}
+
