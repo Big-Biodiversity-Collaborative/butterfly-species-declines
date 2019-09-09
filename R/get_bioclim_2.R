@@ -83,6 +83,7 @@ pull_terraclim = function(lat_range, lon_range){
       temp_list[[j]] <- var.get.nc(nc, variable = env_variable,start = start, count,unpack=TRUE)    #! argument change: 'variable' instead of 'varid'  # Output is now a matrix
       
     }
+    return(temp_list)
 }
 
 
@@ -105,19 +106,19 @@ env_var_year_split = function(terraclim_data) {
 
 bioclim_calc = function(prcp, tmax, tmin, lat_range, lon_range) {
   #rasterizing
-  prcp_raster = t(brick(prcp, 
+  prcp_raster = (brick(prcp, 
                              crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", 
                              xmn = min(lon_range),
                              xmx = max(lon_range),
                              ymn = min(lat_range),
                              ymx = max(lat_range)))
-  tmax_raster = t(brick(tmax, 
+  tmax_raster = (brick(tmax, 
                         crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", 
                         xmn = min(lon_range),
                         xmx = max(lon_range),
                         ymn = min(lat_range),
                         ymx = max(lat_range)))
-  tmin_raster = t(brick(prcp, 
+  tmin_raster = (brick(prcp, 
                         crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", 
                         xmn = min(lon_range),
                         xmx = max(lon_range),
@@ -147,16 +148,126 @@ return(biovar_list)
 
 # Averaging over entire time period ---------------------------------------
 
-bioclim_averaging = function(biovar_list, lat)
-biovar_avg_combined = raster::brick(nl = 19, nrows = 720, ncols = 696, 
-                                       xmn = -180,
-                                       xmx = -50,
-                                       ymn = 10,
-                                       ymx = 85)
-for(i in 1:19) {
-  biovar_sublist = lapply(biovar_list_t1, '[[', i) #pulls out each bioclim variable iteratively
-  biovar_substack = stack(biovar_sublist) #combines all years into a raster stack
-  biovar_avg = calc(biovar_substack, fun = mean) #Calculates the average for each var
-  biovar_avg_combined_t1[[i]] = biovar_avg
+bioclim_averaging = function(biovar_list, nrows, ncols, lat_range, lon_range){
+  biovar_avg_combined = raster::brick(nl = 19, nrows = nrows, ncols = ncols, 
+                                       xmn = min(lon_range),
+                                       xmx = max(lon_range),
+                                       ymn = min(lat_range),
+                                       ymx = max(lat_range))
+    for(i in 1:19) {
+      biovar_sublist = lapply(biovar_list, '[[', i) #pulls out each bioclim variable iteratively
+      biovar_substack = stack(biovar_sublist) #combines all years into a raster stack
+      biovar_avg = calc(biovar_substack, fun = mean) #Calculates the average for each var
+      biovar_avg_combined[[i]] = biovar_avg
+    }
+  return(biovar_avg_combined)
 }
+
+# Master ------------------------------------------------------------------
+
+get_bioclim = function(lat_range, lon_range) {
+  
+  # breaking up into chunks
+  lat_lon_chunks = split_lat_lon(lat_range, lon_range)
+  print("Lat/lon split complete")
+  
+  # initializing list to put stuff into
+  bioclim_final = list()
+  
+  for(i in 1:8){
+    sub_lat_range = lat_lon_chunks[[1]][[i]]
+    
+    for(g in 1:8){
+    sub_lon_range = lat_lon_chunks[[2]][[g]]
+    
+    temp_terraclim = pull_terraclim(lat_range = sub_lat_range,
+                                    lon_range = sub_lon_range)
+    
+    print("Terraclim pull complete")
+    
+    year_split_terraclim = lapply(temp_terraclim, env_var_year_split)
+    
+    print("splitting by year complete")
+    print(str(year_split_terraclim))
+    
+    bioclims_t1 = bioclim_calc(prcp = year_split_terraclim[[1]][[1]],
+                               tmax = year_split_terraclim[[2]][[1]],
+                               tmin = year_split_terraclim[[3]][[1]], 
+                               lat_range = sub_lat_range, 
+                               lon_range = sub_lon_range)
+    
+    print("bioclim t1 creation complete")
+    print(bioclims_t1[[1]])
+    
+    bioclims_t2 = bioclim_calc(prcp = year_split_terraclim[[1]][[2]],
+                               tmax = year_split_terraclim[[2]][[2]],
+                               tmin = year_split_terraclim[[3]][[2]], 
+                               lat_range = sub_lat_range, 
+                               lon_range = sub_lon_range)
+    
+    print("bioclim t2 creation complete")
+    print(bioclims_t2[[1]])
+    
+    dims_1 = dim(bioclims_t1[[1]])
+    dims_2 = dim(bioclims_t2[[1]])
+    
+    avg_t1 = bioclim_averaging(biovar_list = bioclims_t1, 
+                               nrows = dims_1[1], 
+                               ncols = dims_1[2], 
+                              lat_range = sub_lat_range, 
+                              lon_range = sub_lon_range)
+    
+    avg_t2 = bioclim_averaging(biovar_list = bioclims_t2, 
+                               nrows = dims_2[1], 
+                               ncols = dims_2[2], 
+                               lat_range = sub_lat_range, 
+                               lon_range = sub_lon_range)
+    
+    avg_list = list(avg_t1, avg_t2)
+    bioclim_final[[i]][[g]] = avg_list
+    }
+  }
+  return(bioclim_final)
+}
+
+# Testing -----------------------------------------------------------------
+
+
+#Testing on small lat/lon range
+lat_range = c(36, 42)
+lon_range = c(-110, -100)
+
+#Split lat-lon
+lat_lon_list = split_lat_lon(lat_range = lat_range, lon_range = lon_range)
+
+#pulling terraclim
+t1 = pull_terraclim(lat_range = lat_lon_list[[1]][[1]], lon_range = lat_lon_list[[2]][[1]])
+
+#splitting into t1 and t2
+test = lapply(t1, env_var_year_split)
+
+#Calculating bioclims
+bioclims_t1 = bioclim_calc(prcp = test[[1]][[1]],
+                           tmax = test[[2]][[1]], 
+                           tmin = test[[3]][[1]], 
+                           lat_range = lat_range, 
+                           lon_range = lon_range)
+
+bioclims_t2 = bioclim_calc(prcp = test[[1]][[2]],
+                           tmax = test[[2]][[2]], 
+                           tmin = test[[3]][[2]], 
+                           lat_range = lat_range, 
+                           lon_range = lon_range)
+#averaging
+avg_test = bioclim_averaging(bioclims_t1, 
+                             nrows = 12, 
+                             ncols = 12, 
+                             lat_range = lat_range, 
+                             lon_range = lon_range)
+
+#Testing master function
+test = get_bioclim(lat_range = c(41, 42), lon_range = c(-109, -108))
+
+t1_test = lapply(test, '[[', 1)
+merged = do.call(raster::merge, t1_test)
 
