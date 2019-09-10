@@ -177,6 +177,8 @@ get_bioclim = function(lat_range, lon_range) {
   for(i in 1:8){
     sub_lat_range = lat_lon_chunks[[1]][[i]]
     
+    sub_final = list()
+    
     for(g in 1:8){
     sub_lon_range = lat_lon_chunks[[2]][[g]]
     
@@ -188,7 +190,7 @@ get_bioclim = function(lat_range, lon_range) {
     year_split_terraclim = lapply(temp_terraclim, env_var_year_split)
     
     print("splitting by year complete")
-    print(str(year_split_terraclim))
+    
     
     bioclims_t1 = bioclim_calc(prcp = year_split_terraclim[[1]][[1]],
                                tmax = year_split_terraclim[[2]][[1]],
@@ -197,7 +199,7 @@ get_bioclim = function(lat_range, lon_range) {
                                lon_range = sub_lon_range)
     
     print("bioclim t1 creation complete")
-    print(bioclims_t1[[1]])
+    
     
     bioclims_t2 = bioclim_calc(prcp = year_split_terraclim[[1]][[2]],
                                tmax = year_split_terraclim[[2]][[2]],
@@ -206,7 +208,7 @@ get_bioclim = function(lat_range, lon_range) {
                                lon_range = sub_lon_range)
     
     print("bioclim t2 creation complete")
-    print(bioclims_t2[[1]])
+   
     
     dims_1 = dim(bioclims_t1[[1]])
     dims_2 = dim(bioclims_t2[[1]])
@@ -224,10 +226,30 @@ get_bioclim = function(lat_range, lon_range) {
                                lon_range = sub_lon_range)
     
     avg_list = list(avg_t1, avg_t2)
-    bioclim_final[[i]][[g]] = avg_list
+    
+    sub_final[[g]] = avg_list
+    
     }
+    
+    bioclim_final[[i]] = sub_final
   }
-  return(bioclim_final)
+  
+  #Splitting out t1 and t2 - two nested lists each with 64 individual chunks
+  t1 = lapply(bioclim_final, function(x) lapply(x, '[[', 1))
+  t2 = lapply(bioclim_final, function(x) lapply(x, '[[', 2))
+  
+  #merging t1 data
+  t1_apogee = do.call(raster::merge, 
+                      lapply(t1, 
+                             function(x) do.call(raster::merge, x)))
+  
+  #merging t2 data
+  t2_apogee = do.call(raster::merge, 
+                      lapply(t2, 
+                             function(x) do.call(raster::merge, x)))
+  
+  final_list = list(t1_apogee, t2_apogee)
+  return(final_list)
 }
 
 # Testing -----------------------------------------------------------------
@@ -267,7 +289,4 @@ avg_test = bioclim_averaging(bioclims_t1,
 
 #Testing master function
 test = get_bioclim(lat_range = c(41, 42), lon_range = c(-109, -108))
-
-t1_test = lapply(test, '[[', 1)
-merged = do.call(raster::merge, t1_test)
 
