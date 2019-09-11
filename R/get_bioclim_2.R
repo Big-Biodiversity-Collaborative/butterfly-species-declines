@@ -111,19 +111,19 @@ bioclim_calc = function(prcp, tmax, tmin, lat_range, lon_range) {
                              xmn = min(lon_range),
                              xmx = max(lon_range),
                              ymn = min(lat_range),
-                             ymx = max(lat_range)))
+                             ymx = max(lat_range), transpose = TRUE))
   tmax_raster = (brick(tmax, 
                         crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", 
                         xmn = min(lon_range),
                         xmx = max(lon_range),
                         ymn = min(lat_range),
-                        ymx = max(lat_range)))
+                        ymx = max(lat_range), transpose = TRUE))
   tmin_raster = (brick(prcp, 
                         crs ="+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0", 
                         xmn = min(lon_range),
                         xmx = max(lon_range),
                         ymn = min(lat_range),
-                        ymx = max(lat_range)))
+                        ymx = max(lat_range), transpose = TRUE))
   
   biovar_list = list() # Generating empty list to feed into
   length = dim(prcp_raster)[3]/12 #How many times are we going to cycle through?
@@ -233,59 +233,84 @@ get_bioclim = function(lat_range, lon_range) {
     
     bioclim_final[[i]] = sub_final
   }
-  
   #Splitting out t1 and t2 - two nested lists each with 64 individual chunks
   t1 = lapply(bioclim_final, function(x) lapply(x, '[[', 1))
   t2 = lapply(bioclim_final, function(x) lapply(x, '[[', 2))
-  
-  #merging t1 data
-  t1_apogee = do.call(raster::merge, 
-                      lapply(t1, 
-                             function(x) do.call(raster::merge, x)))
-  
-  #merging t2 data
-  t2_apogee = do.call(raster::merge, 
-                      lapply(t2, 
-                             function(x) do.call(raster::merge, x)))
-  
+
+  #unlisting
+  t1_full = unlist(t1)
+  t2_full = unlist(t2)
+
+  #mergning
+  t1_apogee = do.call(merge, t1_full_t)
+  t2_apogee = do.call(merge, t2_full_t)
+
   final_list = list(t1_apogee, t2_apogee)
   return(final_list)
 }
 
 # Testing -----------------------------------------------------------------
-# 
-# #Testing on small lat/lon range
-# lat_range = c(36, 42)
-# lon_range = c(-110, -100)
-# 
-# #Split lat-lon
-# lat_lon_list = split_lat_lon(lat_range = lat_range, lon_range = lon_range)
-# 
-# #pulling terraclim
-# t1 = pull_terraclim(lat_range = lat_lon_list[[1]][[1]], lon_range = lat_lon_list[[2]][[1]])
-# 
-# #splitting into t1 and t2
-# test = lapply(t1, env_var_year_split)
-# 
-# #Calculating bioclims
-# bioclims_t1 = bioclim_calc(prcp = test[[1]][[1]],
-#                            tmax = test[[2]][[1]], 
-#                            tmin = test[[3]][[1]], 
-#                            lat_range = lat_range, 
-#                            lon_range = lon_range)
-# 
-# bioclims_t2 = bioclim_calc(prcp = test[[1]][[2]],
-#                            tmax = test[[2]][[2]], 
-#                            tmin = test[[3]][[2]], 
-#                            lat_range = lat_range, 
-#                            lon_range = lon_range)
-# #averaging
-# avg_test = bioclim_averaging(bioclims_t1, 
-#                              nrows = 12, 
-#                              ncols = 12, 
-#                              lat_range = lat_range, 
-#                              lon_range = lon_range)
 
-#Testing master function
-# test = get_bioclim(lat_range = c(41, 42), lon_range = c(-109, -108))
+#Testing on small lat/lon range by the coast to make sure the transpose issue is functioning
+# florida_test = get_bioclim(lat_range = c(25, 32), lon_range = c(-90, -80))
+# 
+# florida_t1 = lapply(florida_test, function(x) lapply(x, '[[', 1))
+# florida_t1_full = unlist(florida_t1)
+# florida_t1_merged = do.call(merge, florida_t1_full)
+# plot(florida_t1_merged)
+# 
+# florida_transposed = lapply(florida_t1_full, t)
+# florida_flipped = lapply(florida_transposed, flip, 2)
+# florida_t1_merged = do.call(merge, florida_flipped)
+# plot(florida_t1_merged)
+# 
+# 
+# # Bigger problems testing
+# terraclim_dat = pull_terraclim(lat_range = c(25, 26), lon_range = c(-81, -80))
+# year_split_terraclim_dat = lapply(terraclim_dat, env_var_year_split)
+# bioclims_1 = bioclim_calc(prcp = year_split_terraclim_dat[[1]][[2]],
+#                           tmax = year_split_terraclim_dat[[2]][[2]],
+#                           tmin = year_split_terraclim_dat[[3]][[2]], 
+#                           lat_range = c(25,26), 
+#                           lon_range = c(-81, -80))
+# dims_1 = dim(bioclims_1[[1]])
+# avg_1 = bioclim_averaging(biovar_list = bioclims_1, 
+#                         nrows = dims_1[1], 
+#                         ncols = dims_1[2], 
+#                         lat_range = c(25, 26), 
+#                         lon_range = c(-81, -80))
+# library(maps)
+# library(mapdata)
+# library(rgdal)
+# library(fields)
+# states = map_data("state")
+# 
+# florida = states %>%
+#   filter(region == "florida")
+# 
+# ggplot(data = florida) +
+#   geom_polygon(aes(x = long, y = lat)) +
+#   geom_raster(data = avg_1$layer.1.1.1.1)
+# 
+# plot((avg_1$layer.1.1.1.1))
+# US(add=TRUE)
+# plot(avg_2$layer.1.1.1.1, add=TRUE)
+# 
+# 
+# #Part 2
+# terraclim_dat = pull_terraclim(lat_range = c(25, 26), lon_range = c(-82, -81))
+# year_split_terraclim_dat = lapply(terraclim_dat, env_var_year_split)
+# bioclims_2 = bioclim_calc(prcp = year_split_terraclim_dat[[1]][[2]],
+#                           tmax = year_split_terraclim_dat[[2]][[2]],
+#                           tmin = year_split_terraclim_dat[[3]][[2]], 
+#                           lat_range = c(25,26), 
+#                           lon_range = c(-82, -81))
+# dims_1 = dim(bioclims_2[[1]])
+# avg_2 = bioclim_averaging(biovar_list = bioclims_2, 
+#                           nrows = dims_1[1], 
+#                           ncols = dims_1[2], 
+#                           lat_range = c(25, 26), 
+#                           lon_range = c(-82, -81))
+
+
 
