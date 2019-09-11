@@ -253,40 +253,39 @@ get_bioclim = function(lat_range, lon_range) {
 }
 
 # Testing -----------------------------------------------------------------
-
-
-#Testing on small lat/lon range
-lat_range = c(36, 42)
-lon_range = c(-110, -100)
-
-#Split lat-lon
-lat_lon_list = split_lat_lon(lat_range = lat_range, lon_range = lon_range)
-
-#pulling terraclim
-t1 = pull_terraclim(lat_range = lat_lon_list[[1]][[1]], lon_range = lat_lon_list[[2]][[1]])
-
-#splitting into t1 and t2
-test = lapply(t1, env_var_year_split)
-
-#Calculating bioclims
-bioclims_t1 = bioclim_calc(prcp = test[[1]][[1]],
-                           tmax = test[[2]][[1]], 
-                           tmin = test[[3]][[1]], 
-                           lat_range = lat_range, 
-                           lon_range = lon_range)
-
-bioclims_t2 = bioclim_calc(prcp = test[[1]][[2]],
-                           tmax = test[[2]][[2]], 
-                           tmin = test[[3]][[2]], 
-                           lat_range = lat_range, 
-                           lon_range = lon_range)
-#averaging
-avg_test = bioclim_averaging(bioclims_t1, 
-                             nrows = 12, 
-                             ncols = 12, 
-                             lat_range = lat_range, 
-                             lon_range = lon_range)
+# 
+# #Testing on small lat/lon range
+# lat_range = c(36, 42)
+# lon_range = c(-110, -100)
+# 
+# #Split lat-lon
+# lat_lon_list = split_lat_lon(lat_range = lat_range, lon_range = lon_range)
+# 
+# #pulling terraclim
+# t1 = pull_terraclim(lat_range = lat_lon_list[[1]][[1]], lon_range = lat_lon_list[[2]][[1]])
+# 
+# #splitting into t1 and t2
+# test = lapply(t1, env_var_year_split)
+# 
+# #Calculating bioclims
+# bioclims_t1 = bioclim_calc(prcp = test[[1]][[1]],
+#                            tmax = test[[2]][[1]], 
+#                            tmin = test[[3]][[1]], 
+#                            lat_range = lat_range, 
+#                            lon_range = lon_range)
+# 
+# bioclims_t2 = bioclim_calc(prcp = test[[1]][[2]],
+#                            tmax = test[[2]][[2]], 
+#                            tmin = test[[3]][[2]], 
+#                            lat_range = lat_range, 
+#                            lon_range = lon_range)
+# #averaging
+# avg_test = bioclim_averaging(bioclims_t1, 
+#                              nrows = 12, 
+#                              ncols = 12, 
+#                              lat_range = lat_range, 
+#                              lon_range = lon_range)
 
 #Testing master function
-test = get_bioclim(lat_range = c(41, 42), lon_range = c(-109, -108))
+# test = get_bioclim(lat_range = c(41, 42), lon_range = c(-109, -108))
 
