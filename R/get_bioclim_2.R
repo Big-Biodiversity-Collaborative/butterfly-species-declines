@@ -313,4 +313,5 @@ get_bioclim = function(lat_range, lon_range) {
 #                           lon_range = c(-82, -81))
 
 
-
+big_bioclim = get_bioclim(lat_range = c(15, 66), lon_range = c(-140, -60))
+saveRDS(big_bioclim, "./data/big_bioclim.RDS")
