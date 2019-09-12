@@ -8,6 +8,7 @@ library(tidyverse)
 library(RNetCDF)
 library(dismo)
 library(raster)
+library(progress)
 
 # lat-lon range splitting function ----------------------------------------
 
@@ -138,7 +139,6 @@ bioclim_calc = function(prcp, tmax, tmin, lat_range, lon_range) {
                                   tmin = tmin_sub,
                                   tmax = tmax_sub)
     seq = seq + 12
-    print(seq)
   }
                        
 return(biovar_list)       
@@ -164,15 +164,18 @@ bioclim_averaging = function(biovar_list, nrows, ncols, lat_range, lon_range){
 }
 
 # Master ------------------------------------------------------------------
+pb = progress_bar$new(total = 64, format = "    working [:bar] :percent eta: :eta", 
+                      clear = FALSE, width = 60)
 
 get_bioclim = function(lat_range, lon_range) {
-  
+  pb$tick(0)
   # breaking up into chunks
   lat_lon_chunks = split_lat_lon(lat_range, lon_range)
-  print("Lat/lon split complete")
   
   # initializing list to put stuff into
   bioclim_final = list()
+  
+  
   
   for(i in 1:8){
     sub_lat_range = lat_lon_chunks[[1]][[i]]
@@ -185,11 +188,9 @@ get_bioclim = function(lat_range, lon_range) {
     temp_terraclim = pull_terraclim(lat_range = sub_lat_range,
                                     lon_range = sub_lon_range)
     
-    print("Terraclim pull complete")
     
     year_split_terraclim = lapply(temp_terraclim, env_var_year_split)
     
-    print("splitting by year complete")
     
     
     bioclims_t1 = bioclim_calc(prcp = year_split_terraclim[[1]][[1]],
@@ -198,7 +199,6 @@ get_bioclim = function(lat_range, lon_range) {
                                lat_range = sub_lat_range, 
                                lon_range = sub_lon_range)
     
-    print("bioclim t1 creation complete")
     
     
     bioclims_t2 = bioclim_calc(prcp = year_split_terraclim[[1]][[2]],
@@ -207,7 +207,6 @@ get_bioclim = function(lat_range, lon_range) {
                                lat_range = sub_lat_range, 
                                lon_range = sub_lon_range)
     
-    print("bioclim t2 creation complete")
    
     
     dims_1 = dim(bioclims_t1[[1]])
@@ -228,7 +227,7 @@ get_bioclim = function(lat_range, lon_range) {
     avg_list = list(avg_t1, avg_t2)
     
     sub_final[[g]] = avg_list
-    
+    pb$tick(1)
     }
     
     bioclim_final[[i]] = sub_final
@@ -311,6 +310,4 @@ get_bioclim = function(lat_range, lon_range) {
 #                           ncols = dims_1[2], 
 #                           lat_range = c(25, 26), 
 #                           lon_range = c(-82, -81))
-
-
 
