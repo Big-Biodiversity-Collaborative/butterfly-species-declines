@@ -241,8 +241,8 @@ get_bioclim = function(lat_range, lon_range) {
   t2_full = unlist(t2)
 
   #mergning
-  t1_apogee = do.call(merge, t1_full_t)
-  t2_apogee = do.call(merge, t2_full_t)
+  t1_apogee = do.call(merge, t1_full)
+  t2_apogee = do.call(merge, t2_full)
 
   final_list = list(t1_apogee, t2_apogee)
   return(final_list)
@@ -311,9 +311,16 @@ get_bioclim = function(lat_range, lon_range) {
 #                           lat_range = c(25, 26), 
 #                           lon_range = c(-82, -81))
 
-<<<<<<< HEAD
 
-big_bioclim = get_bioclim(lat_range = c(15, 66), lon_range = c(-140, -60))
-saveRDS(big_bioclim, "./data/big_bioclim.RDS")
-=======
->>>>>>> a70dfe44b94d2cba357c0e96b3006f7f6dc8793d
+big_bioclim_1 = get_bioclim(lat_range = c(15, 66), lon_range = c(-140, -100))
+saveRDS(big_bioclim_1, "./data/big_bioclim_1.RDS")
+
+big_bioclim_2 = get_bioclim(lat_range = c(15, 66), lon_range = c(-100, -40))
+saveRDS(big_bioclim_2, "./data/big_bioclim_2.RDS")
+
+#merging
+bioclim_t1 = raster::merge(big_bioclim_1[[1]], big_bioclim_2[[1]])
+bioclim_t2 = raster::merge(big_bioclim_1[[2]], big_bioclim_2[[2]])
+
+saveRDS(bioclim_t1, "./data/bioclim_t1.rds")
+saveRDS(bioclim_t2, "./data/bioclim_t2.rds")
