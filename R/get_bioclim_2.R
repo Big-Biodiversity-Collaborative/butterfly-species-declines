@@ -316,3 +316,4 @@ get_bioclim = function(lat_range, lon_range, year_split) {
 
 #test
 # t = get_bioclim(lat_range = c(65, 66), lon_range = c(-101, -100), year_split = 2000)
+
