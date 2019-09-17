@@ -90,12 +90,15 @@ pull_terraclim = function(lat_range, lon_range){
 
 # Separating years -------------------------------------------
 
-env_var_year_split = function(terraclim_data) {
+env_var_year_split = function(terraclim_data, year_split) {
   #Getting rid of weirdly high values in prcp
   terraclim_data = ifelse(terraclim_data > 10000, NA, terraclim_data)
   
-  terraclim_data_t1 = terraclim_data[,,1:492]
-  terraclim_data_t2 = terraclim_data[,,493:732]
+  #
+  months = (year_split-1958)*12
+  
+  terraclim_data_t1 = terraclim_data[,,1:months]
+  terraclim_data_t2 = terraclim_data[,,(months+1):732]
   
   terraclim_data_t1_t2_list = list(terraclim_data_t1, terraclim_data_t2)
   return(terraclim_data_t1_t2_list)
@@ -167,7 +170,7 @@ bioclim_averaging = function(biovar_list, nrows, ncols, lat_range, lon_range){
 pb = progress_bar$new(total = 64, format = "    working [:bar] :percent eta: :eta", 
                       clear = FALSE, width = 60)
 
-get_bioclim = function(lat_range, lon_range) {
+get_bioclim = function(lat_range, lon_range, year_split) {
   pb$tick(0)
   # breaking up into chunks
   lat_lon_chunks = split_lat_lon(lat_range, lon_range)
@@ -189,7 +192,7 @@ get_bioclim = function(lat_range, lon_range) {
                                     lon_range = sub_lon_range)
     
     
-    year_split_terraclim = lapply(temp_terraclim, env_var_year_split)
+    year_split_terraclim = lapply(temp_terraclim, env_var_year_split, year_split = year_split)
     
     
     
@@ -241,8 +244,8 @@ get_bioclim = function(lat_range, lon_range) {
   t2_full = unlist(t2)
 
   #mergning
-  t1_apogee = do.call(merge, t1_full_t)
-  t2_apogee = do.call(merge, t2_full_t)
+  t1_apogee = do.call(merge, t1_full)
+  t2_apogee = do.call(merge, t2_full)
 
   final_list = list(t1_apogee, t2_apogee)
   return(final_list)
@@ -311,3 +314,12 @@ get_bioclim = function(lat_range, lon_range) {
 #                           lat_range = c(25, 26), 
 #                           lon_range = c(-82, -81))
 
+#test
+t = get_bioclim(lat_range = c(65, 66), lon_range = c(-101, -100), year_split = 2000)
+
+
+
+#ggplot
+ggplot(mtcars, aes(y = mpg, x = wt, color = as.factor(cyl))) +
+  geom_point() +
+  scale_color_discrete(c("red", "yellow", "pink"))
