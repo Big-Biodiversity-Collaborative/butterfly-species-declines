@@ -315,11 +315,4 @@ get_bioclim = function(lat_range, lon_range, year_split) {
 #                           lon_range = c(-82, -81))
 
 #test
-t = get_bioclim(lat_range = c(65, 66), lon_range = c(-101, -100), year_split = 2000)
-
-
-
-#ggplot
-ggplot(mtcars, aes(y = mpg, x = wt, color = as.factor(cyl))) +
-  geom_point() +
-  scale_color_discrete(c("red", "yellow", "pink"))
+# t = get_bioclim(lat_range = c(65, 66), lon_range = c(-101, -100), year_split = 2000)
