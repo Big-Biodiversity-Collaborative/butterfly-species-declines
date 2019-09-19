@@ -314,13 +314,15 @@ get_bioclim = function(lat_range, lon_range) {
 
 # big_bioclim_1 = get_bioclim(lat_range = c(15, 66), lon_range = c(-140, -100))
 # saveRDS(big_bioclim_1, "./data/big_bioclim_1.RDS")
-big_bioclim_1 = readRDS("./data/big_bioclim_1.RDS")
-big_bioclim_2 = get_bioclim(lat_range = c(15, 66), lon_range = c(-100, -60))
-saveRDS(big_bioclim_2, "./data/big_bioclim_2.RDS")
-
-#merging
-bioclim_t1 = raster::merge(big_bioclim_1[[1]], big_bioclim_2[[1]])
-bioclim_t2 = raster::merge(big_bioclim_1[[2]], big_bioclim_2[[2]])
-
-saveRDS(bioclim_t1, "./data/bioclim_t1.rds")
-saveRDS(bioclim_t2, "./data/bioclim_t2.rds")
+# big_bioclim_1 = readRDS("./data/big_bioclim_1.rds")
+# big_bioclim_2 = get_bioclim(lat_range = c(15, 66), lon_range = c(-100, -60))
+# saveRDS(big_bioclim_2, "./data/big_bioclim_2.RDS")
+# big_bioclim_3 = get_bioclim(lat_range = c(15, 66), lon_range = c(-60, -40))
+# saveRDS(big_bioclim_3, "./data/big_bioclim_3.rds")
+# big_bioclim_2 = readRDS("./data/big_bioclim_2.rds")
+# #merging
+# bioclim_t1 = raster::merge(big_bioclim_1[[1]], big_bioclim_2[[1]], big_bioclim_3[[1]])
+# bioclim_t2 = raster::merge(big_bioclim_1[[2]], big_bioclim_2[[2]], big_bioclim_3[[2]])
+# 
+# saveRDS(bioclim_t1, "./data/bioclim_t1.rds")
+# saveRDS(bioclim_t2, "./data/bioclim_t2.rds")
