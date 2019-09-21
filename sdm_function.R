@@ -9,6 +9,10 @@
 library(dismo)
 library(raster)
 library(tidyverse)
+library(blockCV)
+library(tidyverse)
+library(maxnet)
+library(ENMeval)
 
 
 # Importing big bioclim data ----------------------------------------------
@@ -30,7 +34,9 @@ prep_data = function(data) {
   min_lat = floor(min(small_data$latitude))
   max_lon = ceiling(max(small_data$longitude))
   min_lon = floor(min(small_data$longitude))
-  geographic_extent <- extent(x = c(min_lon, max_lon, min_lat, max_lat))
+  
+  # added a 1º buffer in every direction
+  geographic_extent <- extent(x = c(min_lon-1, max_lon+1, min_lat-1, max_lat+1))
   
   # Crop bioclim data to geographic extent of species
   bv_t1_cropped <- crop(x = bv_t1, y = geographic_extent)
@@ -73,16 +79,35 @@ prep_data = function(data) {
   # Changing to a spatial points data frame
   df_sp_t1 = SpatialPointsDataFrame(df_comb_t1[,c("longitude","latitude")], 
                                     df_comb_t1, 
-                                    proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+                                    proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")) 
+  df_sp_t1$time_frame = "t1"
   df_sp_t2 = SpatialPointsDataFrame(df_comb_t2[,c("longitude","latitude")], 
                                     df_comb_t2, 
                                     proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+  df_sp_t2$time_frame = "t2"
   
   #Converting to a list with the two dataframes
-  prepared_data_list = list(df_sp_t1, df_sp_t2)
+  prepared_data_list = list(data = list(t1 = df_sp_t1, t2 = df_sp_t2),
+                            env_data = list(bv_t1_cropped, bv_t2_cropped))
   return(prepared_data_list)
 }
 
+
+# Block CV ----------------------------------------------------------------
+run_block_cv = function(prepped_data, bv_raster){
+  blocked = spatialBlock(speciesData = prepped_data,
+                                 species = "Species",
+                                 rasterLayer = bv_raster,
+                                 theRange = 400000,
+                                 k = 5, 
+                                 selection = "random", 
+                                 iteration = 250, 
+                                 biomod2Format = TRUE, 
+                                 xOffset = 0, 
+                                 yOffset = 0, 
+                                 progress = T)
+  return(blocked)
+  }
 
 # Testing Sandbox ---------------------------------------------------------
 
@@ -90,3 +115,5 @@ test_data = read_csv("./data/candidate_occurences.csv") %>%
   filter(true_name == "Leptotes marina")
 
 test_prepped = prep_data(test_data)
+block_test = run_block_cv(test_prepped[[1]][[1]], test_prepped[[2]][[1]])
+
