@@ -53,10 +53,10 @@ prep_data = function(data) {
   print(glimpse(df_t2))
   
   # Generate 10k background points for each one. 
-  bg_t1 = dismo::randomPoints(bv_t1, 10000)
+  bg_t1 = dismo::randomPoints(bv_t1_cropped, 10000)
   colnames(bg_t1) = c("longitude", "latitude")
   
-  bg_t2 = randomPoints(bv_t2, 10000)
+  bg_t2 = randomPoints(bv_t2_cropped, 10000)
   colnames(bg_t2) = c("longitude", "latitude")
   
   # Merging background data and occurence data
@@ -89,6 +89,15 @@ prep_data = function(data) {
   #Converting to a list with the two dataframes
   prepared_data_list = list(data = list(t1 = df_sp_t1, t2 = df_sp_t2),
                             env_data = list(bv_t1_cropped, bv_t2_cropped))
+  #Names
+  bio_names = c()
+  for(i in 1:19){
+    bio_names[i] = paste0("Bio", i)
+  }
+  
+  names(prepared_data_list[[2]][[1]]) = bio_names
+  names(prepared_data_list[[2]][[2]]) = bio_names
+  
   return(prepared_data_list)
 }
 
@@ -107,7 +116,55 @@ run_block_cv = function(prepped_data, bv_raster){
                                  yOffset = 0, 
                                  progress = T)
   return(blocked)
+}
+
+
+# Preparing data 2 ----------------------------------------------------------
+prep_data_2 = function(data, env_raster){
+extra_prepped = raster::extract(env_raster, data, df = TRUE) %>%
+  bind_cols(as.data.frame(data)) %>%
+  drop_na() %>%
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
+return(extra_prepped)
+}
+
+
+# Presence-Background and fold list ---------------------------------------
+
+pb_and_folds = function(prepped_data, block){
+# vectors of presence-background
+pb_list = lapply(prepped_data,  function(x) '['(x, 3))
+
+# folds for each model
+fold_list = lapply(block_list, function(x) '[['(x, 1))
+
+}
+
+# Writing a function that unlists and combines all training and 
+# test indices for each species-time period combination
+extract_index = function(list_of_folds = NULL) {
+  for(k in 1:length(list_of_folds)){
+    train_index <- unlist(list_of_folds[[k]][1]) # extract the training set indices
+    test_index <- unlist(list_of_folds[[k]][2])# extract the test set indices
   }
+  mini_list = list(train_index, test_index)
+  mini_list
+}
+
+#Applying the function to the list of folds
+train_test_index_list = lapply(fold_list, extract_index)
+
+train_test_data_list = list()
+for (i in 1:length(model_data_list)) {
+  train_index = train_test_index_list[[i]][[1]]
+  test_index = train_test_index_list[[i]][[2]]
+  
+  train_data = model_data_list[[i]][train_index,]
+  test_data = model_data_list[[i]][test_index,]
+  
+  mini_list = list(train_data, test_data)
+  train_test_data_list[[i]] = mini_list
+}
 
 # Testing Sandbox ---------------------------------------------------------
 
@@ -116,4 +173,9 @@ test_data = read_csv("./data/candidate_occurences.csv") %>%
 
 test_prepped = prep_data(test_data)
 block_test = run_block_cv(test_prepped[[1]][[1]], test_prepped[[2]][[1]])
+
+prep_2_test = prep_data_2(data = test_prepped[[1]][[1]], env_raster = test_prepped[[2]][[1]])
+
+
+
 
