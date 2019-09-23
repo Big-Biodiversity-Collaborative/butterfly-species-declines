@@ -22,12 +22,27 @@ bv_t2 = readRDS("./data/bioclim_t2.rds")
 
 # Prepping Occurrence Data ------------------------------------------------
 
-prep_data = function(data) {
+#' Initial prepping of occurence data to create SDMs
+#'
+#' @param data A dataframe outputted from the butt_obs script. Generated from 
+#' \code{\link[spocc]{occ}}
+#' @param year_split The year to split the data by. Non inclusive (e.g. 2000 will
+#'  split the  data into everything through 1999, and 2000-everything after).
+#'  Default is the year 2000. 
+#'
+#' @return A list four elements long: the first two are the occurence data split
+#'  by the year_split argument with 10k background points added. Additionally, 
+#'  they are converted to a spatial points dataframe. 
+#'  The second two items are the env rasters cropped 
+#'  to the area of the occurences for each subset split by year_split.
+#'
+#' @examples
+prep_data = function(data, year_split = 2000) {
   
   # selecting the pieces we want and separating by time
   small_data = data %>%
     select(name = true_name, longitude, latitude, date = eventDate, year) %>%
-    mutate(time_frame = ifelse(year < 2000, "t1", "t2"))
+    mutate(time_frame = ifelse(year < year_split, "t1", "t2"))
   
   # calculating extent of occurences
   max_lat = ceiling(max(small_data$latitude))
@@ -103,7 +118,18 @@ prep_data = function(data) {
 
 
 # Block CV ----------------------------------------------------------------
+#' Running blockCV with a preset config for this project
+#'
+#' @param prepped_data The prepped spatial points dataframe created by 
+#' \code{link{prep_data}}
+#' @param bv_raster the cropped raster associated with the same time period 
+#' as the prepped_data above. 
+#'
+#' @return a blockCV object that we will use in later analysis
+#'
+#' @examples
 run_block_cv = function(prepped_data, bv_raster){
+  
   blocked = spatialBlock(speciesData = prepped_data,
                                  species = "Species",
                                  rasterLayer = bv_raster,
@@ -120,6 +146,16 @@ run_block_cv = function(prepped_data, bv_raster){
 
 
 # Preparing data 2 ----------------------------------------------------------
+#' More data preparation prior to SDM building
+#'
+#' @param data Prepped spatial points datframe created by \code{link{prep_data}}
+#' @param env_raster the cropped raster associated with the same time period 
+#' as the prepped_data above.
+#'
+#' @return a dataframe with extracted environmental variables along with presence 
+#' for all of the occurence and background data
+#'
+#' @examples
 prep_data_2 = function(data, env_raster){
 extra_prepped = raster::extract(env_raster, data, df = TRUE) %>%
   bind_cols(as.data.frame(data)) %>%
