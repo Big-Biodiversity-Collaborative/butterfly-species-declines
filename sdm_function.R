@@ -13,6 +13,9 @@ library(blockCV)
 library(tidyverse)
 library(maxnet)
 library(ENMeval)
+if (Sys.getenv("JAVA_HOME")!="")
+  Sys.setenv(JAVA_HOME="")
+library(rJava)
 
 
 # Importing big bioclim data ----------------------------------------------
@@ -140,7 +143,9 @@ run_block_cv = function(prepped_data, bv_raster){
                                  biomod2Format = TRUE, 
                                  xOffset = 0, 
                                  yOffset = 0, 
-                                 progress = T)
+                                 progress = T, 
+                                 showBlocks = F
+                         )
   return(blocked)
 }
 
@@ -165,41 +170,53 @@ return(extra_prepped)
 }
 
 
-# Presence-Background and fold list ---------------------------------------
+# Train and test split ---------------------------------------
 
-pb_and_folds = function(prepped_data, block){
-# vectors of presence-background
-pb_list = lapply(prepped_data,  function(x) '['(x, 3))
+train_test_split = function(extra_prepped_data, blocked_obj){
 
-# folds for each model
-fold_list = lapply(block_list, function(x) '[['(x, 1))
-
-}
-
-# Writing a function that unlists and combines all training and 
-# test indices for each species-time period combination
 extract_index = function(list_of_folds = NULL) {
   for(k in 1:length(list_of_folds)){
     train_index <- unlist(list_of_folds[[k]][1]) # extract the training set indices
     test_index <- unlist(list_of_folds[[k]][2])# extract the test set indices
   }
   mini_list = list(train_index, test_index)
-  mini_list
+  return(mini_list)
 }
 
-#Applying the function to the list of folds
-train_test_index_list = lapply(fold_list, extract_index)
+indices = extract_index(blocked_obj$folds)
+print(length(indices[[1]]))
+print(length(indices[[2]]))
 
-train_test_data_list = list()
-for (i in 1:length(model_data_list)) {
-  train_index = train_test_index_list[[i]][[1]]
-  test_index = train_test_index_list[[i]][[2]]
+#applying indexes and splitting data
+training_data = extra_prepped_data[indices[[1]],]
+test_data = extra_prepped_data[-indices[[2]],]
+
+return(list(training_data = training_data, 
+            test_data = test_data))
+}
+
+
+# Modeling ----------------------------------------------------------------
+
+model_func = function(data = NULL, env_raster) {
+  data_occ = data %>%  #Generating occurence lat long
+    filter(Species == 1) %>%
+    dplyr::select(longitude, latitude) %>%
+    drop_na()
   
-  train_data = model_data_list[[i]][train_index,]
-  test_data = model_data_list[[i]][test_index,]
+  data_bg = data %>% #Generating background lat long
+    filter(Species == 0) %>%
+    dplyr::select(longitude, latitude) %>%
+    drop_na()
   
-  mini_list = list(train_data, test_data)
-  train_test_data_list[[i]] = mini_list
+  #Running the model
+  eval = ENMevaluate(occ = data_occ, 
+                     bg.coords = data_bg,
+                     env = env_raster,
+                     method = 'randomkfold', 
+                     kfolds = 5, 
+                     algorithm = 'maxent.jar')
+  return(eval)
 }
 
 # Testing Sandbox ---------------------------------------------------------
@@ -212,6 +229,9 @@ block_test = run_block_cv(test_prepped[[1]][[1]], test_prepped[[2]][[1]])
 
 prep_2_test = prep_data_2(data = test_prepped[[1]][[1]], env_raster = test_prepped[[2]][[1]])
 
+split_test = train_test_split(prep_2_test, block_test)
 
+# Takes forever to run
+# eval = model_func(data = split_t[[1]], env_raster = test_prepped[[2]][[1]])
 
 
