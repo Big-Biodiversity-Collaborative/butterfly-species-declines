@@ -219,6 +219,62 @@ model_func = function(data = NULL, env_raster) {
   return(eval)
 }
 
+
+# Evaluation plots ---------------------------------------------------------
+
+eval_plots = function(eval_object = NULL) {
+  par(mfrow=c(2,3))
+  eval.plot(eval_object@results)
+  eval.plot(eval_object@results, 'avg.test.AUC', legend = F)
+  eval.plot(eval_object@results, 'avg.diff.AUC', legend = F)
+  eval.plot(eval_object@results, 'avg.test.or10pct', legend = F)
+  eval.plot(eval_object@results, 'avg.test.orMTP', legend = F)
+  plot(eval_object@results$avg.test.AUC, eval_object@results$delta.AICc, bg=eval_object@results$features, pch=21, cex= eval_object@results$rm/2, xlab = "avg.test.AUC", ylab = 'delta.AICc', cex.lab = 1.5)
+  legend("topright", legend=unique(eval_object@results$features), pt.bg=eval_object@results$features, pch=21)
+  mtext("Circle size proportional to regularization multiplier value", cex = 0.6)
+  
+}
+
+
+# Model Selection ---------------------------------------------------------
+
+best_mod = function(model_obj){
+  best_index = as.numeric(row.names(model_obj@results[which(model_obj@results$avg.test.AUC== max(model_obj@results$avg.test.AUC)),]))[1]
+
+  best_mod = model_obj@models[[best_index]]
+  return(list(best_mod, best_index))
+}
+
+
+# Evaluating on test data -------------------------------------------------
+
+evaluate_models = function(test_data, model, env_raster) {
+  test_data_occ = test_data %>%
+    filter(Species == 1) %>%
+    dplyr::select(longitude, latitude)
+  
+  bg_data = test_data %>%
+    filter(Species == 0) %>%
+    dplyr::select(longitude, latitude)
+  
+  ev = evaluate(test_data_occ, a = bg_data, model = model, x = env_raster)
+  return(ev)
+}
+
+
+# Building full models on all data ----------------------------------------
+
+full_model = function(models_obj, best_model_index, full_data = NULL, env_raster) {
+  auc_mod = models_obj@results[best_model_index,]
+  FC_best = as.character(auc_mod$features[1])
+  rm_best = auc_mod$rm
+  
+  maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
+
+  full_mod = maxent(env_data, as.matrix(full_data[,1:2]), args = maxent.args[[1]])
+  return(full_mod)
+}
+
 # Testing Sandbox ---------------------------------------------------------
 
 test_data = read_csv("./data/candidate_occurences.csv") %>%
@@ -232,6 +288,18 @@ prep_2_test = prep_data_2(data = test_prepped[[1]][[1]], env_raster = test_prepp
 split_test = train_test_split(prep_2_test, block_test)
 
 # Takes forever to run
-# eval = model_func(data = split_t[[1]], env_raster = test_prepped[[2]][[1]])
+eval = model_func(data = split_test[[1]], env_raster = test_prepped[[2]][[1]])
 
+# plots
+eval_plots(eval)
+
+# best mod
+best_model = best_mod(eval)
+
+# ev obj
+
+ev = evaluate_models(test_data = prep_data_2(test_prepped[[1]][[2]], 
+                                             env_raster = test_prepped[[2]][[2]]),
+                     model = best_model, 
+                     env_raster = test_prepped[[2]][[2]])
 
