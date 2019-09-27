@@ -407,6 +407,7 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2,
 
   }
   return(prepped_data_list)
+  saveRDS(prepped_data_list, "./data/model_data_list.rds")
 }
 
 # Testing Sandbox ---------------------------------------------------------
