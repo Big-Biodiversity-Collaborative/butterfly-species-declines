@@ -466,6 +466,7 @@ small_test_data = full_data %>%
   filter(true_name == "Danaus plexippus")
 
 
+doParallel::registerDoParallel(cores = 2)
 t = build_sdm(multi_species_df = small_test_data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2, num_cores = 2)
 
 
