@@ -43,7 +43,7 @@ prep_data = function(data, year_split = 2000, env_raster_t1, env_raster_t2) {
   
   # selecting the pieces we want and separating by time
   small_data = data %>%
-    select(name = true_name, longitude, latitude, date = eventDate, year) %>%
+    select(name = true_name, longitude, latitude, date, year) %>%
     mutate(time_frame = ifelse(year < year_split, "t1", "t2"))
   
   # calculating extent of occurences
@@ -452,19 +452,27 @@ full_mod = full_model(models_obj = eval,
 
 #Testing master function
 full_data = read_csv("./data/candidate_occurences.csv")
-unique(full_data$true_name)
+
 
 sum(is.na(full_data$year))
 sum(is.na(full_data$eventDate))
 
-full_data %>%
+full_data = full_data %>%
+  mutate(year = lubridate::year(date),
+         time_frame = ifelse(year > 1999, "T1", "T2"),
+         name = stringr::word(name, 1, 2)) %>%
   filter(!is.na(year)) %>%
-  mutate(time_frame = ifelse(year > 1999, "T1", "T2")) %>%
+  mutate(true_name = name) %>%
+  select(-name)
+
+full_data %>%
   group_by(true_name, time_frame) %>%
   summarize(n = n())
 
+# write_csv(full_data, "./data/candidate_occurences.csv")  
+
 small_test_data = full_data %>%
-  filter(true_name == "Danaus plexippus")
+  filter(true_name == "Danaus plexippus" | true_name == "Colias eurytheme")
 
 
 doParallel::registerDoParallel(cores = 2)

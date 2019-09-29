@@ -6,6 +6,7 @@
 # packages
 library(tidyverse)
 library(spocc)
+library(stringr)
 
 # loading in candidate species data
 candidates = read_csv('./data/candidate_species.csv')
@@ -27,17 +28,26 @@ names = can_joins$gbif_name
 butt_obs = function(names){
   df = data.frame()
   for (i in 1:length(names)){
-    sub = occ(query = names[i], from = "gbif", limit = 100000, has_coords=TRUE, 
-              gbifopts=list(continent='north_america'))
-    df = bind_rows(df, sub$gbif$data[[1]] %>%
-                     mutate(true_name = names[i]))
+    sub = occ(query = names[i], from = c("gbif", "inat"), limit = 10000, 
+              has_coords=TRUE, 
+              gbifopts=list(continent='north_america'), 
+              geometry = c(-140, 20, -90, 60))
+    
+    sub_df = occ2df(sub)
+    
+    df = bind_rows(df, sub_df)
   }
   return(df)
 }
 
 #Running function above
-butterfly_data = butt_obs(names) %>%
-  select(name, longitude, latitude, key, family, genus, species, stateProvince, 
-         year, month, day, eventDate, countryCode, county, true_name)
+butterfly_data = butt_obs(names)
 
-write_csv(butterfly_data, './data/candidate_occurences.csv')
+# Will need to do some duplicate removal
+butterfly_data_clean = butterfly_data %>%
+  mutate(longitude = as.numeric(longitude), 
+         latitude = as.numeric(latitude),
+         name = word(name, 1, 2)) %>%
+  distinct(longitude, latitude, date, name) 
+
+write_csv(butterfly_data_clean, './data/candidate_occurences.csv')
