@@ -197,25 +197,25 @@ return(list(training_data = training_data,
 
 # Modeling ----------------------------------------------------------------
 
-model_func = function(data = NULL, env_raster, num_cores) {
+model_func = function(data = NULL, env_raster, num_cores = NULL) {
   data_occ = data %>%  #Generating occurence lat long
     filter(Species == 1) %>%
     dplyr::select(longitude, latitude) %>%
     drop_na()
   
-  data_bg = data %>% #Generating background lat long
+  bg_data = data %>% #Generating background lat long
     filter(Species == 0) %>%
     dplyr::select(longitude, latitude) %>%
     drop_na()
   
   #Running the model
   eval = ENMevaluate(occ = data_occ, 
-                     bg.coords = data_bg,
+                     bg.coords = bg_data,
                      env = env_raster,
                      method = 'randomkfold', 
-                     kfolds = 5, 
-                     parallel = TRUE,
-                     numCores = num_cores
+                     kfolds = 5,
+                     # parallel = TRUE,
+                     # numCores = 2,
                      algorithm = 'maxent.jar')
   return(eval)
 }
@@ -283,7 +283,7 @@ full_model = function(models_obj, best_model_index, full_data = NULL, env_raster
 
 # Master Function - build_sdm() -------------------------------------------
 
-build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2, num_cores){
+build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2){
   # Setting seed for reproducibility
   
   set.seed(42)
@@ -411,72 +411,88 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2,
 }
 
 # Testing Sandbox ---------------------------------------------------------
-# Loading saved temp objects
-best_model = readRDS("./tmp/best_mod.rds")
-block_test = readRDS("./tmp/block_test.rds")
-ev = readRDS("./tmp/evaluation_obj.rds")
-eval = readRDS("./tmp/models.rds")
+# # Loading saved temp objects
+# best_model = readRDS("./tmp/best_mod.rds")
+# block_test = readRDS("./tmp/block_test.rds")
+# ev = readRDS("./tmp/evaluation_obj.rds")
+# eval = readRDS("./tmp/models.rds")
+
+# Need to do a bit of data wrangling before feeding into the model
+#
+ test_data = read_csv("./data/candidate_occurences.csv") %>%
+   filter(name == "Leptotes marina") %>%
+   mutate(true_name = name,
+          year = lubridate::year(date)) %>%
+     select(-name)
+#
+test_prepped = prep_data(test_data, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
+
+block_test = run_block_cv(test_prepped[[1]][[1]], test_prepped[[2]][[1]])
+
+prep_2_test = prep_data_2(data = test_prepped[[1]][[1]], env_raster = test_prepped[[2]][[1]])
+#
+split_test = train_test_split(prep_2_test, block_test)
+#
+# # Takes forever to run
+#
+doParallel::registerDoParallel(cores = 2)
+eval = model_func(data = split_test[[1]], env_raster = test_prepped[[2]][[1]])
+
+# #
+# # # plots
+# eval_plots(eval)
+# #
+# # # best mod
+# best_model = best_mod(eval)
+# #
+# # # ev obj
+# #
+# ev = evaluate_models(test_data = split_test$test_data,
+#                      env_raster = test_prepped[[2]][[1]],
+#                      model = best_model[[1]])
+# #
+# #
+# full_mod = full_model(models_obj = eval,
+#                       best_model_index = best_model[[2]],
+#                       full_data = test_data[,1:2],
+#                       env_raster = test_prepped[[2]][[1]])
+#
+
+# #Testing master function
+# full_data = read_csv("./data/candidate_occurences.csv")
+#
+#
+# sum(is.na(full_data$year))
+# sum(is.na(full_data$eventDate))
+#
+# full_data = full_data %>%
+#   mutate(year = lubridate::year(date),
+#          time_frame = ifelse(year > 1999, "T1", "T2"),
+#          name = stringr::word(name, 1, 2)) %>%
+#   filter(!is.na(year)) %>%
+#   mutate(true_name = name) %>%
+#   select(-name)
+#
+# full_data %>%
+#   group_by(true_name, time_frame) %>%
+#   summarize(n = n())
+#
+# # write_csv(full_data, "./data/candidate_occurences.csv")
+#
+# small_test_data = full_data %>%
+#   filter(true_name == "Danaus plexippus" | true_name == "Colias eurytheme")
+#
 
 
 test_data = read_csv("./data/candidate_occurences.csv") %>%
-  filter(true_name == "Leptotes marina")
-
-test_prepped = prep_data(test_data)
-#block_test = run_block_cv(test_prepped[[1]][[1]], test_prepped[[2]][[1]])
-
-prep_2_test = prep_data_2(data = test_prepped[[1]][[1]], env_raster = test_prepped[[2]][[1]])
-
-split_test = train_test_split(prep_2_test, block_test)
-
-# Takes forever to run
-#eval = model_func(data = split_test[[1]], env_raster = test_prepped[[2]][[1]])
-
-# plots
-eval_plots(eval)
-
-# best mod
-#best_model = best_mod(eval)
-
-# ev obj
-
-# ev = evaluate_models(test_data = prep_data_2(test_prepped[[1]][[2]], 
-#                                              env_raster = test_prepped[[2]][[2]]),
-#                      model = best_model, 
-#                      env_raster = test_prepped[[2]][[2]])
-
-
-full_mod = full_model(models_obj = eval, 
-                      best_model_index = best_model[[2]], 
-                      full_data = test_data[,2:3],
-                      env_raster = test_prepped[[2]][[1]])
-
-#Testing master function
-full_data = read_csv("./data/candidate_occurences.csv")
-
-
-sum(is.na(full_data$year))
-sum(is.na(full_data$eventDate))
-
-full_data = full_data %>%
-  mutate(year = lubridate::year(date),
-         time_frame = ifelse(year > 1999, "T1", "T2"),
-         name = stringr::word(name, 1, 2)) %>%
-  filter(!is.na(year)) %>%
-  mutate(true_name = name) %>%
+  filter(name == "Leptotes marina" | name == "Danaus plexippus") %>%
+  mutate(true_name = name, 
+         year = lubridate::year(date)) %>%
   select(-name)
-
-full_data %>%
-  group_by(true_name, time_frame) %>%
-  summarize(n = n())
-
-# write_csv(full_data, "./data/candidate_occurences.csv")  
-
-small_test_data = full_data %>%
-  filter(true_name == "Danaus plexippus" | true_name == "Colias eurytheme")
 
 
 doParallel::registerDoParallel(cores = 2)
-t = build_sdm(multi_species_df = small_test_data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2, num_cores = 2)
+t = build_sdm(multi_species_df = test_data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
 
 
 # Need to build in some QC checking on the data to feed in... the function breaks 
