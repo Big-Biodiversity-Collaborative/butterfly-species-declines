@@ -501,6 +501,7 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
 # sum(is.na(full_data$year))
 # sum(is.na(full_data$eventDate))
 #
+<<<<<<< HEAD
 full_data %>%
   mutate(year = lubridate::year(date),
          time_frame = ifelse(year > 1999, "T1", "T2")) %>%
@@ -508,6 +509,15 @@ full_data %>%
   group_by(true_name, time_frame) %>%
   summarize(n = n()) %>%
   print(n = 50)
+=======
+# full_data %>%
+#   mutate(year = lubridate::year(date),
+#          time_frame = ifelse(year > 1999, "T1", "T2")) %>%
+#   filter(!is.na(year)) %>%
+#   group_by(true_name, time_frame) %>%
+#   summarize(n = n()) %>%
+#   print(n = 50)
+>>>>>>> 0d610f71533d43d6073b8f000d730ebee238b8f9
 #
 # full_data %>%
 #   group_by(true_name, time_frame) %>%
@@ -522,16 +532,34 @@ full_data %>%
 
 test_data = read_csv("./data/candidate_occurences.csv") %>%
   filter(name == "Agraulis vanillae" | name == "Cupido comyntas") %>%
+<<<<<<< HEAD
   mutate(true_name = name, 
+=======
+  mutate(true_name = name,
+>>>>>>> 0d610f71533d43d6073b8f000d730ebee238b8f9
          year = lubridate::year(date)) %>%
   select(-name)
 
 
+<<<<<<< HEAD
 doParallel::stopImplicitCluster()
 
 t = build_sdm(multi_species_df = test_data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
+=======
+# Run ---------------------------------------------------------------------
+>>>>>>> 0d610f71533d43d6073b8f000d730ebee238b8f9
 
+'%!in%' <- function(x,y)!('%in%'(x,y))
 
+remove_list = c("Cupido comyntas", "Pieris marginalis", "Pyrameis cardui", "Pyrgus adepta", "Pyrgus albescens")
+
+data = read_csv("./data/candidate_occurences.csv") %>%
+  mutate(true_name = name,
+         year = lubridate::year(date)) %>%
+  filter(true_name %!in% remove_list) %>%
+  select(-name)
+
+<<<<<<< HEAD
 for(m in 1:length(t)){
   ev_t1 = try(evaluate_models(test_data = t[[m]]$train_test_split[[1]]$test_data,
                               model = t[[m]]$best_mod[[1]][[1]],
@@ -542,3 +570,6 @@ for(m in 1:length(t)){
   
   t[[m]]$evaluations = list(ev_t1, ev_t2)
 }
+=======
+test_cases = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
+>>>>>>> 0d610f71533d43d6073b8f000d730ebee238b8f9
