@@ -215,8 +215,8 @@ model_func = function(data = NULL, env_raster, num_cores = NULL) {
                      method = 'randomkfold', 
                      kfolds = 5,
                      # parallel = TRUE,
-                     # numCores = 2,
-                     algorithm = 'maxent.jar')
+                     # numCores = num_cores,
+                     algorithm = 'maxnet')
   return(eval)
 }
 
@@ -226,21 +226,20 @@ model_func = function(data = NULL, env_raster, num_cores = NULL) {
 eval_plots = function(eval_object = NULL) {
   par(mfrow=c(2,3))
   eval.plot(eval_object@results)
-  eval.plot(eval_object@results, 'avg.test.AUC', legend = F)
-  eval.plot(eval_object@results, 'avg.diff.AUC', legend = F)
-  eval.plot(eval_object@results, 'avg.test.or10pct', legend = F)
-  eval.plot(eval_object@results, 'avg.test.orMTP', legend = F)
-  plot(eval_object@results$avg.test.AUC, eval_object@results$delta.AICc, bg=eval_object@results$features, pch=21, cex= eval_object@results$rm/2, xlab = "avg.test.AUC", ylab = 'delta.AICc', cex.lab = 1.5)
-  legend("topright", legend=unique(eval_object@results$features), pt.bg=eval_object@results$features, pch=21)
+  eval.plot(eval_object@results, 'auc.test.avg', legend = F)
+  eval.plot(eval_object@results, 'auc.diff.avg', legend = F)
+  eval.plot(eval_object@results, 'or.mtp.avg', legend = F)
+  eval.plot(eval_object@results, 'or.10p.avg', legend = F)
+  plot(eval_object@results$auc.test.avg, eval_object@results$delta.AICc, bg=as.factor(eval_object@results$fc), pch= 21, cex = eval_object@results$rm/2, xlab = "avg.test.AUC", ylab = 'delta.AICc', cex.lab = 1.5)
+  legend("topright", legend=unique(eval_object@results$fc), pt.bg=as.factor(eval_object@results$fc), pch=21)
   mtext("Circle size proportional to regularization multiplier value", cex = 0.6)
   
 }
 
-
 # Model Selection ---------------------------------------------------------
 
 best_mod = function(model_obj){
-  best_index = as.numeric(row.names(model_obj@results[which(model_obj@results$avg.test.AUC== max(model_obj@results$avg.test.AUC)),]))[1]
+  best_index = as.numeric(row.names(model_obj@results[which(model_obj@results$auc.test.avg== max(model_obj@results$auc.test.avg)),]))[1]
 
   best_mod = model_obj@models[[best_index]]
   return(list(best_mod, best_index))
@@ -263,15 +262,51 @@ evaluate_models = function(test_data, model, env_raster) {
 }
 
 
+# make args ---------------------------------------------------------------
+make.args <- function(RMvalues=seq(0.5, 4, 0.5), fc=c("L", "LQ", "H", "LQH", "LQHP", "LQHPT"), labels=FALSE) {
+  
+  other.args <- c("noaddsamplestobackground", "noremoveDuplicates", "noautofeature")
+  args.list <- list()
+  
+  for (i in 1:length(fc)) {
+    args.list[[i]] <- other.args
+    if(!grepl("L", fc[[i]])) args.list[[i]] <- c(args.list[[i]], "nolinear")
+    if(!grepl("Q", fc[[i]])) args.list[[i]] <- c(args.list[[i]], "noquadratic")
+    if(!grepl("H", fc[[i]])) args.list[[i]] <- c(args.list[[i]], "nohinge")
+    if(!grepl("P", fc[[i]])) args.list[[i]] <- c(args.list[[i]], "noproduct")
+    if(!grepl("T", fc[[i]])) args.list[[i]] <- c(args.list[[i]], "nothreshold")
+  }
+  
+  RM.lab <- rep(RMvalues, each=length(fc))
+  RM.arg <- paste("betamultiplier=", RM.lab, sep="")
+  fc.lab <- rep(fc, times=length(RMvalues))
+  fc.arg <- rep(args.list, times=length(RMvalues))
+  
+  args <- list()
+  feats.lab <- c()
+  rms.lab <- c()
+  for (i in 1:length(fc.lab)) {
+    args[[i]] <- c(RM.arg[i], fc.arg[[i]])
+    feats.lab <- c(feats.lab, fc.lab[[i]])
+    rms.lab <- c(rms.lab, RM.lab[i])
+  }
+  args.lab <- list(feats.lab, rms.lab)
+  
+  if(labels==FALSE) {
+    return(args)
+  } else {
+    return(args.lab)
+  }
+}
 # Building full models on all data ----------------------------------------
 
 full_model = function(models_obj, best_model_index, full_data = NULL, env_raster) {
   auc_mod = models_obj@results[best_model_index,]
-  FC_best = as.character(auc_mod$features[1])
+  FC_best = as.character(auc_mod$fc[1])
   rm_best = auc_mod$rm
   
   
-  maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
+  maxent.args = make.args(RMvalues = rm_best, fc = FC_best)
   
   # re calculating environmental raster
   
@@ -296,18 +331,19 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
     summarize(n = n()) 
   
   if(any(data_summary$n < 10)) {
-    print("Removing species with less than 10 records for a given period")
     
-    good_list = multi_species_df %>%
-      filter(!is.na(year)) %>%
-      mutate(time_frame = ifelse(year > 1999, "T1", "T2")) %>%
-      group_by(true_name, time_frame) %>%
-      summarize(n = n()) %>%
-      filter(n >= 10) %>%
-      select(true_name)
+    offender_list = data_summary %>%
+      filter(n <= 10) %>%
+      select(true_name) %>%
+      pull()
+    
+    print(paste("Removing species (", offender_list,") as these species have less than 10 records for a given period"))
+    
+    # Defining not-in funcion
+    '%!in%' <- function(x,y)!('%in%'(x,y))
     
     multi_species_df = multi_species_df %>% 
-      filter(true_name %in% good_list)
+      filter(true_name %!in% offender_list)
     
     
   }
@@ -373,16 +409,16 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   for(l in 1:length(prepped_data_list)){
     best_mod_t1 = try(best_mod(model_obj = prepped_data_list[[k]]$models[[1]]))
     best_mod_t2 = try(best_mod(model_obj = prepped_data_list[[k]]$models[[2]]))
-    prepped_data_list[[k]]$best_mod = list(best_mod_t1, best_mod_t2)
+    prepped_data_list[[l]]$best_mod = list(best_mod_t1, best_mod_t2)
   }
   
   # evaluating best model on blockCV test data
   for(m in 1:length(prepped_data_list)){
     ev_t1 = try(evaluate_models(test_data = prepped_data_list[[m]]$train_test_split[[1]]$test_data,
-                            model = prepped_data_list[[m]]$best_mod[[1]],
+                            model = prepped_data_list[[m]]$best_mod[[1]][[1]],
                             env_raster = prepped_data_list[[m]]$env_data[[1]]))
     ev_t2 = try(evaluate_models(test_data = prepped_data_list[[m]]$train_test_split[[2]]$test_data,
-                            model = prepped_data_list[[m]]$best_mod[[2]],
+                            model = prepped_data_list[[m]]$best_mod[[2]][[1]],
                             env_raster = prepped_data_list[[m]]$env_data[[2]]))
     
     prepped_data_list[[m]]$evaluations = list(ev_t1, ev_t2)
@@ -418,45 +454,45 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
 # eval = readRDS("./tmp/models.rds")
 
 # Need to do a bit of data wrangling before feeding into the model
-#
- test_data = read_csv("./data/candidate_occurences.csv") %>%
-   filter(name == "Leptotes marina") %>%
-   mutate(true_name = name,
-          year = lubridate::year(date)) %>%
-     select(-name)
-#
-test_prepped = prep_data(test_data, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
-
-block_test = run_block_cv(test_prepped[[1]][[1]], test_prepped[[2]][[1]])
-
-prep_2_test = prep_data_2(data = test_prepped[[1]][[1]], env_raster = test_prepped[[2]][[1]])
-#
-split_test = train_test_split(prep_2_test, block_test)
-#
-# # Takes forever to run
-#
-doParallel::registerDoParallel(cores = 2)
-eval = model_func(data = split_test[[1]], env_raster = test_prepped[[2]][[1]])
-
 # #
-# # # plots
+#  test_data = read_csv("./data/candidate_occurences.csv") %>%
+#    filter(name == "Leptotes marina") %>%
+#    mutate(true_name = name,
+#           year = lubridate::year(date)) %>%
+#      select(-name)
+# # #
+# test_prepped = prep_data(test_data, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
+# # 
+# block_test = run_block_cv(test_prepped[[1]][[1]], test_prepped[[2]][[1]])
+# # 
+# prep_2_test = prep_data_2(data = test_prepped[[1]][[1]], env_raster = test_prepped[[2]][[1]])
+# # #
+# split_test = train_test_split(prep_2_test, block_test)
+# # #
+# # # # Takes forever to run
+# # #
+# doParallel::registerDoParallel(cores = 2)
+# eval = model_func(data = split_test[[1]], env_raster = test_prepped[[2]][[1]], num_cores = 4)
+# # 
+# # # #
+# # # # # plots
 # eval_plots(eval)
-# #
-# # # best mod
+# # #
+# # # # best mod
 # best_model = best_mod(eval)
-# #
-# # # ev obj
-# #
+# # #
+# # # # ev obj
+# # #
 # ev = evaluate_models(test_data = split_test$test_data,
 #                      env_raster = test_prepped[[2]][[1]],
 #                      model = best_model[[1]])
-# #
-# #
+# # #
+# # #
 # full_mod = full_model(models_obj = eval,
 #                       best_model_index = best_model[[2]],
 #                       full_data = test_data[,1:2],
 #                       env_raster = test_prepped[[2]][[1]])
-#
+# #
 
 # #Testing master function
 # full_data = read_csv("./data/candidate_occurences.csv")
@@ -465,13 +501,13 @@ eval = model_func(data = split_test[[1]], env_raster = test_prepped[[2]][[1]])
 # sum(is.na(full_data$year))
 # sum(is.na(full_data$eventDate))
 #
-# full_data = full_data %>%
-#   mutate(year = lubridate::year(date),
-#          time_frame = ifelse(year > 1999, "T1", "T2"),
-#          name = stringr::word(name, 1, 2)) %>%
-#   filter(!is.na(year)) %>%
-#   mutate(true_name = name) %>%
-#   select(-name)
+full_data %>%
+  mutate(year = lubridate::year(date),
+         time_frame = ifelse(year > 1999, "T1", "T2")) %>%
+  filter(!is.na(year)) %>%
+  group_by(true_name, time_frame) %>%
+  summarize(n = n()) %>%
+  print(n = 50)
 #
 # full_data %>%
 #   group_by(true_name, time_frame) %>%
@@ -485,17 +521,24 @@ eval = model_func(data = split_test[[1]], env_raster = test_prepped[[2]][[1]])
 
 
 test_data = read_csv("./data/candidate_occurences.csv") %>%
-  filter(name == "Leptotes marina" | name == "Danaus plexippus") %>%
+  filter(name == "Agraulis vanillae" | name == "Cupido comyntas") %>%
   mutate(true_name = name, 
          year = lubridate::year(date)) %>%
   select(-name)
 
 
-doParallel::registerDoParallel(cores = 2)
+doParallel::stopImplicitCluster()
+
 t = build_sdm(multi_species_df = test_data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
 
 
-# Need to build in some QC checking on the data to feed in... the function breaks 
-# when a given species doesn't have enough occurence data to split into 5 chunks for 
-# cross validation. Also, get rid of NAs in date/year
-# 
+for(m in 1:length(t)){
+  ev_t1 = try(evaluate_models(test_data = t[[m]]$train_test_split[[1]]$test_data,
+                              model = t[[m]]$best_mod[[1]][[1]],
+                              env_raster = t[[m]]$env_data[[1]]))
+  ev_t2 = try(evaluate_models(test_data = t[[m]]$train_test_split[[2]]$test_data,
+                              model = t[[m]]$best_mod[[2]][[1]],
+                              env_raster = t[[m]]$env_data[[2]]))
+  
+  t[[m]]$evaluations = list(ev_t1, ev_t2)
+}
