@@ -164,7 +164,8 @@ prep_data_2 = function(data, env_raster){
 extra_prepped = raster::extract(env_raster, data, df = TRUE) %>%
   bind_cols(as.data.frame(data)) %>%
   drop_na() %>%
-  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19) %>%
+  filter_all(all_vars(. != -Inf))
 return(extra_prepped)
 }
 
@@ -517,13 +518,20 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
 
 '%!in%' <- function(x,y)!('%in%'(x,y))
 
-remove_list = c("Cupido comyntas", "Pieris marginalis", "Pyrameis cardui", "Pyrgus adepta", "Pyrgus albescens")
+read_csv("./data/candidate_occurences.csv") %>%
+  mutate(true_name = name,
+         year = lubridate::year(date), 
+         time_frame = ifelse(year < 2000, "t1", "t2")) %>%
+  drop_na() %>%
+  group_by(true_name, time_frame) %>%
+  summarize(n = n())
 
 data = read_csv("./data/candidate_occurences.csv") %>%
   mutate(true_name = name,
          year = lubridate::year(date)) %>%
-  filter(true_name %!in% remove_list) %>%
+  drop_na() %>%
+  filter(true_name == "Agraulis vanillae" | true_name == "Battus philenor") %>%
   select(-name)
 
-test_cases = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
+test_cases_1 = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
 
