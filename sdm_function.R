@@ -182,7 +182,6 @@ train_test_split = function(extra_prepped_data, blocked_obj){
     mini_list = list(train_index, test_index)
     return(mini_list)
   }
-<<<<<<< HEAD
   
   indices = extract_index(blocked_obj$folds)
   print(length(indices[[1]]))
@@ -196,7 +195,6 @@ train_test_split = function(extra_prepped_data, blocked_obj){
   
   return(list(training_data = training_data, 
               test_data = test_data))
-=======
   mini_list = list(train_index, test_index)
   return(mini_list)
 }
@@ -213,7 +211,6 @@ test_data = extra_prepped_data[-indices[[2]],] %>%
 
 return(list(training_data = training_data, 
             test_data = test_data))
->>>>>>> af02d84fcc066f8b14be4bf0d010d8b6bb46b411
 }
 
 
@@ -232,15 +229,6 @@ model_func = function(data = NULL, env_raster, num_cores = NULL) {
   
   #Running the model
   eval = try(ENMevaluate(occ = data_occ, 
-<<<<<<< HEAD
-                         bg.coords = bg_data,
-                         env = env_raster,
-                         method = 'randomkfold', 
-                         kfolds = 5,
-                         # parallel = TRUE,
-                         # numCores = num_cores,
-                         algorithm = 'maxnet'))
-=======
                      bg.coords = bg_data,
                      env = env_raster,
                      method = 'randomkfold', 
@@ -248,7 +236,6 @@ model_func = function(data = NULL, env_raster, num_cores = NULL) {
                      # parallel = TRUE,
                      # numCores = num_cores,
                      algorithm = 'maxnet'))
->>>>>>> af02d84fcc066f8b14be4bf0d010d8b6bb46b411
   
   if (class(eval) == "try-error") {
     cat("Caught an error running maxnet, trying maxent")
