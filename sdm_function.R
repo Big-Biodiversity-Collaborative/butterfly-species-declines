@@ -188,8 +188,10 @@ print(length(indices[[1]]))
 print(length(indices[[2]]))
 
 #applying indexes and splitting data
-training_data = extra_prepped_data[indices[[1]],]
-test_data = extra_prepped_data[-indices[[2]],]
+training_data = extra_prepped_data[indices[[1]],] %>%
+  drop_na()
+test_data = extra_prepped_data[-indices[[2]],] %>%
+  drop_na()
 
 return(list(training_data = training_data, 
             test_data = test_data))
@@ -210,14 +212,27 @@ model_func = function(data = NULL, env_raster, num_cores = NULL) {
     drop_na()
   
   #Running the model
-  eval = ENMevaluate(occ = data_occ, 
+  eval = try(ENMevaluate(occ = data_occ, 
                      bg.coords = bg_data,
                      env = env_raster,
                      method = 'randomkfold', 
                      kfolds = 5,
                      # parallel = TRUE,
                      # numCores = num_cores,
-                     algorithm = 'maxnet')
+                     algorithm = 'maxnet'))
+  
+  if (class(eval) == "try-error") {
+    cat("Caught an error running maxnet, trying maxent")
+    
+    eval = try(ENMevaluate(occ = data_occ, 
+                           bg.coords = bg_data,
+                           env = env_raster,
+                           method = 'randomkfold', 
+                           kfolds = 5,
+                           # parallel = TRUE,
+                           # numCores = num_cores,
+                           algorithm = 'maxent.jar'))
+  }
   return(eval)
 }
 
@@ -408,8 +423,8 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   
   # Choosing best model
   for(l in 1:length(prepped_data_list)){
-    best_mod_t1 = try(best_mod(model_obj = prepped_data_list[[k]]$models[[1]]))
-    best_mod_t2 = try(best_mod(model_obj = prepped_data_list[[k]]$models[[2]]))
+    best_mod_t1 = try(best_mod(model_obj = prepped_data_list[[l]]$models[[1]]))
+    best_mod_t2 = try(best_mod(model_obj = prepped_data_list[[l]]$models[[2]]))
     prepped_data_list[[l]]$best_mod = list(best_mod_t1, best_mod_t2)
   }
   
@@ -524,14 +539,16 @@ read_csv("./data/candidate_occurences.csv") %>%
          time_frame = ifelse(year < 2000, "t1", "t2")) %>%
   drop_na() %>%
   group_by(true_name, time_frame) %>%
-  summarize(n = n())
+  summarize(n = n()) %>%
+  print(n = 45)
 
 data = read_csv("./data/candidate_occurences.csv") %>%
   mutate(true_name = name,
          year = lubridate::year(date)) %>%
   drop_na() %>%
-  filter(true_name == "Agraulis vanillae" | true_name == "Battus philenor") %>%
+  filter(true_name == "Leptotes marina" | true_name == "Nymphalis antiopa") %>%
   select(-name)
 
-test_cases_1 = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
+test_cases_2 = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
+saveRDS(test_cases_2, "./output/marina_antiopa.rds")
 
