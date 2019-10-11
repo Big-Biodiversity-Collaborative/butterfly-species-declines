@@ -195,22 +195,6 @@ train_test_split = function(extra_prepped_data, blocked_obj){
   
   return(list(training_data = training_data, 
               test_data = test_data))
-  mini_list = list(train_index, test_index)
-  return(mini_list)
-}
-
-indices = extract_index(blocked_obj$folds)
-print(length(indices[[1]]))
-print(length(indices[[2]]))
-
-#applying indexes and splitting data
-training_data = extra_prepped_data[indices[[1]],] %>%
-  drop_na()
-test_data = extra_prepped_data[-indices[[2]],] %>%
-  drop_na()
-
-return(list(training_data = training_data, 
-            test_data = test_data))
 }
 
 
@@ -229,13 +213,13 @@ model_func = function(data = NULL, env_raster, num_cores = NULL) {
   
   #Running the model
   eval = try(ENMevaluate(occ = data_occ, 
-                     bg.coords = bg_data,
-                     env = env_raster,
-                     method = 'randomkfold', 
-                     kfolds = 5,
-                     # parallel = TRUE,
-                     # numCores = num_cores,
-                     algorithm = 'maxnet'))
+                         bg.coords = bg_data,
+                         env = env_raster,
+                         method = 'randomkfold', 
+                         kfolds = 5,
+                         # parallel = TRUE,
+                         # numCores = num_cores,
+                         algorithm = 'maxnet'))
   
   if (class(eval) == "try-error") {
     cat("Caught an error running maxnet, trying maxent")
