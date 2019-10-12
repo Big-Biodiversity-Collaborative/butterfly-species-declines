@@ -133,18 +133,18 @@ prep_data = function(data, year_split = 2000, env_raster_t1, env_raster_t2) {
 run_block_cv = function(prepped_data, bv_raster){
   
   blocked = spatialBlock(speciesData = prepped_data,
-                                 species = "Species",
-                                 rasterLayer = bv_raster,
-                                 theRange = 400000,
-                                 k = 5, 
-                                 selection = "random", 
-                                 iteration = 250, 
-                                 biomod2Format = TRUE, 
-                                 xOffset = 0, 
-                                 yOffset = 0, 
-                                 progress = T, 
-                                 showBlocks = F
-                         )
+                         species = "Species",
+                         rasterLayer = bv_raster,
+                         theRange = 400000,
+                         k = 5, 
+                         selection = "random", 
+                         iteration = 250, 
+                         biomod2Format = TRUE, 
+                         xOffset = 0, 
+                         yOffset = 0, 
+                         progress = T, 
+                         showBlocks = F
+  )
   return(blocked)
 }
 
@@ -161,40 +161,40 @@ run_block_cv = function(prepped_data, bv_raster){
 #'
 #' @examples
 prep_data_2 = function(data, env_raster){
-extra_prepped = raster::extract(env_raster, data, df = TRUE) %>%
-  bind_cols(as.data.frame(data)) %>%
-  drop_na() %>%
-  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19) %>%
-  filter_all(all_vars(. != -Inf))
-return(extra_prepped)
+  extra_prepped = raster::extract(env_raster, data, df = TRUE) %>%
+    bind_cols(as.data.frame(data)) %>%
+    drop_na() %>%
+    dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19) %>%
+    filter_all(all_vars(. != -Inf))
+  return(extra_prepped)
 }
 
 
 # Train and test split ---------------------------------------
 
 train_test_split = function(extra_prepped_data, blocked_obj){
-
-extract_index = function(list_of_folds = NULL) {
-  for(k in 1:length(list_of_folds)){
-    train_index <- unlist(list_of_folds[[k]][1]) # extract the training set indices
-    test_index <- unlist(list_of_folds[[k]][2])# extract the test set indices
+  
+  extract_index = function(list_of_folds = NULL) {
+    for(k in 1:length(list_of_folds)){
+      train_index <- unlist(list_of_folds[[k]][1]) # extract the training set indices
+      test_index <- unlist(list_of_folds[[k]][2])# extract the test set indices
+    }
+    mini_list = list(train_index, test_index)
+    return(mini_list)
   }
-  mini_list = list(train_index, test_index)
-  return(mini_list)
-}
-
-indices = extract_index(blocked_obj$folds)
-print(length(indices[[1]]))
-print(length(indices[[2]]))
-
-#applying indexes and splitting data
-training_data = extra_prepped_data[indices[[1]],] %>%
-  drop_na()
-test_data = extra_prepped_data[-indices[[2]],] %>%
-  drop_na()
-
-return(list(training_data = training_data, 
-            test_data = test_data))
+  
+  indices = extract_index(blocked_obj$folds)
+  print(length(indices[[1]]))
+  print(length(indices[[2]]))
+  
+  #applying indexes and splitting data
+  training_data = extra_prepped_data[indices[[1]],] %>%
+    drop_na()
+  test_data = extra_prepped_data[-indices[[2]],] %>%
+    drop_na()
+  
+  return(list(training_data = training_data, 
+              test_data = test_data))
 }
 
 
@@ -213,13 +213,13 @@ model_func = function(data = NULL, env_raster, num_cores = NULL) {
   
   #Running the model
   eval = try(ENMevaluate(occ = data_occ, 
-                     bg.coords = bg_data,
-                     env = env_raster,
-                     method = 'randomkfold', 
-                     kfolds = 5,
-                     # parallel = TRUE,
-                     # numCores = num_cores,
-                     algorithm = 'maxnet'))
+                         bg.coords = bg_data,
+                         env = env_raster,
+                         method = 'randomkfold', 
+                         kfolds = 5,
+                         # parallel = TRUE,
+                         # numCores = num_cores,
+                         algorithm = 'maxnet'))
   
   if (class(eval) == "try-error") {
     cat("Caught an error running maxnet, trying maxent")
@@ -256,7 +256,7 @@ eval_plots = function(eval_object = NULL) {
 
 best_mod = function(model_obj){
   best_index = as.numeric(row.names(model_obj@results[which(model_obj@results$auc.test.avg== max(model_obj@results$auc.test.avg)),]))[1]
-
+  
   best_mod = model_obj@models[[best_index]]
   return(list(best_mod, best_index))
 }
@@ -326,7 +326,7 @@ full_model = function(models_obj, best_model_index, full_data = NULL, env_raster
   
   # re calculating environmental raster
   
-
+  
   full_mod = maxent(env_raster, as.matrix(full_data[,1:2]), args = maxent.args[[1]])
   return(full_mod)
 }
@@ -375,16 +375,16 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
                              year_split = year_split)
   
   # Generating blockCV objects for each time period for each species and attaching to master list
-
+  
   for(i in 1:length(prepped_data_list)){
     # initializing the list
     block_list = list()
     
     # Calculating stuff
     block_t1 = try(run_block_cv(prepped_data = prepped_data_list[[i]][[1]][[1]], 
-                            bv_raster = prepped_data_list[[i]][[2]][[1]]))
+                                bv_raster = prepped_data_list[[i]][[2]][[1]]))
     block_t2 = try(run_block_cv(prepped_data = prepped_data_list[[i]][[1]][[2]], 
-                            bv_raster = prepped_data_list[[i]][[2]][[2]]))
+                                bv_raster = prepped_data_list[[i]][[2]][[2]]))
     
     block_list = list(t1_block = block_t1, t2_block = block_t2)
     prepped_data_list[[i]]$blocks = block_list
@@ -394,9 +394,9 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   
   for(j in 1:length(prepped_data_list)){
     prepped_df_t1 = try(prep_data_2(data = prepped_data_list[[j]]$data[[1]], 
-                                env_raster = prepped_data_list[[j]]$env_data[[1]]))
+                                    env_raster = prepped_data_list[[j]]$env_data[[1]]))
     prepped_df_t2 = try(prep_data_2(data = prepped_data_list[[j]]$data[[2]], 
-                                env_raster = prepped_data_list[[j]]$env_data[[2]]))
+                                    env_raster = prepped_data_list[[j]]$env_data[[2]]))
     data_df = list(prepped_df_t1, prepped_df_t2)
     prepped_data_list[[j]]$prepped_dfs = data_df
   }
@@ -404,9 +404,9 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   # Training and test split
   for(j in 1:length(prepped_data_list)){
     training_list_t1 = try(train_test_split(prepped_data_list[[j]]$prepped_dfs[[1]],
-                                        blocked_obj = prepped_data_list[[j]]$blocks[[1]]))
+                                            blocked_obj = prepped_data_list[[j]]$blocks[[1]]))
     training_list_t2 = try(train_test_split(prepped_data_list[[j]]$prepped_dfs[[2]],
-                                        blocked_obj = prepped_data_list[[j]]$blocks[[2]]))
+                                            blocked_obj = prepped_data_list[[j]]$blocks[[2]]))
     prepped_data_list[[j]]$train_test_split[[1]] = training_list_t1
     prepped_data_list[[j]]$train_test_split[[2]] = training_list_t2
     
@@ -415,9 +415,9 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   # Modeling
   for(k in 1:length(prepped_data_list)){
     models_t1 = try(model_func(data = prepped_data_list[[k]]$train_test_split[[1]]$training_data, 
-                           env_raster = prepped_data_list[[k]]$env_data[[1]]))
+                               env_raster = prepped_data_list[[k]]$env_data[[1]]))
     models_t2 = try(model_func(data = prepped_data_list[[k]]$train_test_split[[2]]$training_data, 
-                           env_raster = prepped_data_list[[k]]$env_data[[2]]))
+                               env_raster = prepped_data_list[[k]]$env_data[[2]]))
     prepped_data_list[[k]]$models = list(models_t1, models_t2)
   }
   
@@ -431,11 +431,11 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   # evaluating best model on blockCV test data
   for(m in 1:length(prepped_data_list)){
     ev_t1 = try(evaluate_models(test_data = prepped_data_list[[m]]$train_test_split[[1]]$test_data,
-                            model = prepped_data_list[[m]]$best_mod[[1]][[1]],
-                            env_raster = prepped_data_list[[m]]$env_data[[1]]))
+                                model = prepped_data_list[[m]]$best_mod[[1]][[1]],
+                                env_raster = prepped_data_list[[m]]$env_data[[1]]))
     ev_t2 = try(evaluate_models(test_data = prepped_data_list[[m]]$train_test_split[[2]]$test_data,
-                            model = prepped_data_list[[m]]$best_mod[[2]][[1]],
-                            env_raster = prepped_data_list[[m]]$env_data[[2]]))
+                                model = prepped_data_list[[m]]$best_mod[[2]][[1]],
+                                env_raster = prepped_data_list[[m]]$env_data[[2]]))
     
     prepped_data_list[[m]]$evaluations = list(ev_t1, ev_t2)
   }
@@ -443,20 +443,20 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   # full mods on all data
   for(n in 1:length(prepped_data_list)){
     full_mod_t1 = try(full_model(models_obj = prepped_data_list[[n]]$models[[1]],
-                             best_model_index = prepped_data_list[[n]]$best_mod[[1]][[2]],
-                             full_data = butt_list[[n]] %>%
-                               filter(year < year_split), 
-                             env_raster = prepped_data_list[[n]]$env_data[[1]]
-                             ))
+                                 best_model_index = prepped_data_list[[n]]$best_mod[[1]][[2]],
+                                 full_data = butt_list[[n]] %>%
+                                   filter(year < year_split), 
+                                 env_raster = prepped_data_list[[n]]$env_data[[1]]
+    ))
     
     full_mod_t2 = try(full_model(models_obj = prepped_data_list[[n]]$models[[2]],
-                             best_model_index = prepped_data_list[[n]]$best_mod[[2]][[2]],
-                             full_data = butt_list[[n]] %>%
-                               filter(year >= year_split), 
-                             env_raster = prepped_data_list[[n]]$env_data[[2]]))
+                                 best_model_index = prepped_data_list[[n]]$best_mod[[2]][[2]],
+                                 full_data = butt_list[[n]] %>%
+                                   filter(year >= year_split), 
+                                 env_raster = prepped_data_list[[n]]$env_data[[2]]))
     
     prepped_data_list[[n]]$full_mods = list(full_mod_t1, full_mod_t2)
-
+    
   }
   return(prepped_data_list)
   saveRDS(prepped_data_list, "./data/model_data_list.rds")
