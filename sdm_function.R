@@ -546,9 +546,9 @@ data = read_csv("./data/candidate_occurences.csv") %>%
   mutate(true_name = name,
          year = lubridate::year(date)) %>%
   drop_na() %>%
-  filter(true_name == "Leptotes marina" | true_name == "Nymphalis antiopa") %>%
+  filter(true_name == "Parnassius clodius" | true_name == "Pieris rapae") %>%
   select(-name)
 
 test_cases_2 = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
-saveRDS(test_cases_2, "./output/marina_antiopa.rds")
+saveRDS(test_cases_2, "./output/clodius_rapae.rds")
 
