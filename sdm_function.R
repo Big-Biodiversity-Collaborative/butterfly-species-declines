@@ -273,7 +273,7 @@ evaluate_models = function(test_data, model, env_raster) {
     filter(Species == 0) %>%
     dplyr::select(longitude, latitude)
   
-  ev = evaluate(test_data_occ, a = bg_data, model = model, x = env_raster, type = 'response')
+  ev = evaluate(test_data_occ, a = bg_data, model = model, x = env_raster, type = 'cloglog')
   return(ev)
 }
 
