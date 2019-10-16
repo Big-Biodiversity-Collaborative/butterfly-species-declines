@@ -273,7 +273,7 @@ evaluate_models = function(test_data, model, env_raster) {
     filter(Species == 0) %>%
     dplyr::select(longitude, latitude)
   
-  ev = evaluate(test_data_occ, a = bg_data, model = model, x = env_raster)
+  ev = evaluate(test_data_occ, a = bg_data, model = model, x = env_raster, type = 'cloglog')
   return(ev)
 }
 
@@ -546,9 +546,14 @@ data = read_csv("./data/candidate_occurences.csv") %>%
   mutate(true_name = name,
          year = lubridate::year(date)) %>%
   drop_na() %>%
-  filter(true_name == "Parnassius clodius" | true_name == "Pieris rapae") %>%
+  filter(true_name == "Parnassius clodius") %>%
   select(-name)
 
 test_cases_2 = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
-saveRDS(test_cases_2, "./output/clodius_rapae.rds")
+saveRDS(test_cases_2, "./output/clodius_new_ev.rds")
 
+
+
+test_ev_2 = evaluate_models(test_data = test_cases_2$`Parnassius clodius`$prepped_dfs[[2]], 
+                          model = test_cases_2$`Parnassius clodius`$best_mod[[2]][[1]], 
+                          env_raster = test_cases_2$`Parnassius clodius`$env_data[[2]])

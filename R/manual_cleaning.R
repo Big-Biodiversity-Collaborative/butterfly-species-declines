@@ -87,19 +87,20 @@ full_data = read_csv("./data/candidate_occurences.csv") %>%
 
 new_full = full_model(models_obj = t2$`Nymphalis antiopa`$models[[1]], 
                       best_model_index = t2$`Nymphalis antiopa`$best_mod[[1]][[2]], 
-                      full_data = full_data, 
+                      full_data = as.matrix(full_data[,1:2]), 
                       env_raster = t2$`Nymphalis antiopa`$env_data[[1]])
 
 
-auc_mod = t2$`Nymphalis antiopa`$models[[1]]@results[best_model_index,]
+auc_mod = t2$`Nymphalis antiopa`$models[[1]]@results[5,]
 FC_best = as.character(auc_mod$fc[1])
 rm_best = auc_mod$rm
 
 maxent.args = make.args(RMvalues = rm_best, fc = FC_best)
 
-maxent_test = maxent(x = t2$`Nymphalis antiopa`$prepped_dfs[[1]][,-c(22:25)],
+maxent_test = maxent(x = t2$`Nymphalis antiopa`$prepped_dfs[[1]][,1:19],
                      p = t2$`Nymphalis antiopa`$prepped_dfs[[1]]$Species,
                      args = maxent.args[[1]])
+
 t2$`Nymphalis antiopa`$full_mods[[1]] = maxent_test
 
 saveRDS(t2, "./output/marina_antiopa.rds")
@@ -109,6 +110,7 @@ rm(t2)
 t3 = readRDS("./output/phyleus_coenida.rds")
 glimpse(t3)
 
+
 best_model_index = t3$`Junonia coenia`$best_mod[[1]][[2]]
 auc_mod = t3$`Junonia coenia`$models[[1]]@results[best_model_index,]
 FC_best = as.character(auc_mod$fc[1])
@@ -116,7 +118,7 @@ rm_best = auc_mod$rm
 
 maxent.args = make.args(RMvalues = rm_best, fc = FC_best)
 
-maxent_test = maxent(x = t3$`Junonia coenia`$prepped_dfs[[1]][,-c(22:25)],
+maxent_test = maxent(x = t3$`Junonia coenia`$prepped_dfs[[1]][,1:19],
                      p = t3$`Junonia coenia`$prepped_dfs[[1]]$Species,
                      args = maxent.args[[1]])
 t3$`Junonia coenia`$full_mods[[1]] = maxent_test
@@ -128,7 +130,7 @@ rm_best = auc_mod$rm
 
 maxent.args = make.args(RMvalues = rm_best, fc = FC_best)
 
-maxent_test = maxent(x = t3$`Junonia coenia`$prepped_dfs[[2]][,-c(22:25)],
+maxent_test = maxent(x = t3$`Junonia coenia`$prepped_dfs[[2]][,1:19],
                      p = t3$`Junonia coenia`$prepped_dfs[[2]]$Species,
                      args = maxent.args[[1]])
 
@@ -145,3 +147,8 @@ rm(t4)
 
 t5 = readRDS("./output/vanillae_philenor.rds")
 glimpse(t5)
+rm(t5)
+
+t6 = readRDS("./output/plexippus_clarus.rds")
+glimpse(t6)
+t6$`Epargyreus clarus`$full_mods[[2]]
