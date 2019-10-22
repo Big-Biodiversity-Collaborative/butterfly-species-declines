@@ -217,8 +217,8 @@ model_func = function(data = NULL, env_raster, num_cores = NULL) {
                          env = env_raster,
                          method = 'randomkfold', 
                          kfolds = 5,
-                         # parallel = TRUE,
-                         # numCores = num_cores,
+                         parallel = TRUE,
+                         numCores = num_cores,
                          algorithm = 'maxnet'))
   
   if (class(eval) == "try-error") {
@@ -318,7 +318,7 @@ make.args <- function(RMvalues=seq(0.5, 4, 0.5), fc=c("L", "LQ", "H", "LQH", "LQ
 
 full_model = function(models_obj, best_model_index, full_data = NULL, env_raster) {
   auc_mod = models_obj@results[best_model_index,]
-  FC_best = as.character(auc_mod$fc[1])
+  FC_best = tolower(as.character(auc_mod$fc[1]))
   rm_best = auc_mod$rm
   
   
@@ -327,14 +327,20 @@ full_model = function(models_obj, best_model_index, full_data = NULL, env_raster
   # re calculating environmental raster
   
   
-  full_mod = maxent(env_raster, as.matrix(full_data[,1:2]), args = maxent.args[[1]])
+  # full_mod = maxent(env_raster, as.matrix(full_data[,1:2]), args = maxent.args[[1]])
+  full_mod = maxnet(p = full_data$Species, data = full_data[,1:19],
+                    maxnet.formula(full_data$Species, 
+                                   full_data[,1:19], 
+                                   classes = FC_best), 
+                    regmult = rm_best)
   return(full_mod)
+  
 }
 
 
 # Master Function - build_sdm() -------------------------------------------
 
-build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2){
+build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2, num_cores = NULL){
   # Setting seed for reproducibility
   
   set.seed(42)
@@ -412,12 +418,19 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
     
   }
   
+  # parallelization
+  total_cores = parallel::detectCores()
+  to_use = total_cores - 2
+  doParallel::registerDoParallel(to_use)
+  
   # Modeling
   for(k in 1:length(prepped_data_list)){
     models_t1 = try(model_func(data = prepped_data_list[[k]]$train_test_split[[1]]$training_data, 
-                               env_raster = prepped_data_list[[k]]$env_data[[1]]))
+                               env_raster = prepped_data_list[[k]]$env_data[[1]],
+                               num_cores = to_use))
     models_t2 = try(model_func(data = prepped_data_list[[k]]$train_test_split[[2]]$training_data, 
-                               env_raster = prepped_data_list[[k]]$env_data[[2]]))
+                               env_raster = prepped_data_list[[k]]$env_data[[2]],
+                               num_cores = to_use))
     prepped_data_list[[k]]$models = list(models_t1, models_t2)
   }
   
@@ -444,15 +457,13 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   for(n in 1:length(prepped_data_list)){
     full_mod_t1 = try(full_model(models_obj = prepped_data_list[[n]]$models[[1]],
                                  best_model_index = prepped_data_list[[n]]$best_mod[[1]][[2]],
-                                 full_data = butt_list[[n]] %>%
-                                   filter(year < year_split), 
+                                 full_data = prepped_data_list[[n]]$prepped_dfs[[1]],
                                  env_raster = prepped_data_list[[n]]$env_data[[1]]
     ))
     
     full_mod_t2 = try(full_model(models_obj = prepped_data_list[[n]]$models[[2]],
                                  best_model_index = prepped_data_list[[n]]$best_mod[[2]][[2]],
-                                 full_data = butt_list[[n]] %>%
-                                   filter(year >= year_split), 
+                                 full_data = prepped_data_list[[n]]$prepped_dfs[[2]],
                                  env_raster = prepped_data_list[[n]]$env_data[[2]]))
     
     prepped_data_list[[n]]$full_mods = list(full_mod_t1, full_mod_t2)
@@ -460,6 +471,7 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
   }
   return(prepped_data_list)
   saveRDS(prepped_data_list, "./data/model_data_list.rds")
+  doParallel::stopImplicitCluster()
 }
 
 # Testing Sandbox ---------------------------------------------------------
@@ -531,29 +543,25 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2)
 
 # Run ---------------------------------------------------------------------
 
-'%!in%' <- function(x,y)!('%in%'(x,y))
-
-read_csv("./data/candidate_occurences.csv") %>%
+to_remove = read_csv("./data/candidate_occurences.csv") %>%
   mutate(true_name = name,
          year = lubridate::year(date), 
          time_frame = ifelse(year < 2000, "t1", "t2")) %>%
   drop_na() %>%
   group_by(true_name, time_frame) %>%
   summarize(n = n()) %>%
-  print(n = 45)
+  filter(n < 10) %>%
+  pull(true_name)
+  
+'%!in%' <- function(x,y)!('%in%'(x,y))
 
 data = read_csv("./data/candidate_occurences.csv") %>%
   mutate(true_name = name,
          year = lubridate::year(date)) %>%
   drop_na() %>%
-  filter(true_name == "Parnassius clodius") %>%
+  filter(true_name %!in% to_remove) %>%
   select(-name)
 
-test_cases_2 = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
-saveRDS(test_cases_2, "./output/clodius_new_ev.rds")
+full = build_sdm(multi_species_df = data, year_split = 2000, env_raster_t1 = bv_t1, env_raster_t2 = bv_t2)
 
-
-
-test_ev_2 = evaluate_models(test_data = test_cases_2$`Parnassius clodius`$prepped_dfs[[2]], 
-                          model = test_cases_2$`Parnassius clodius`$best_mod[[2]][[1]], 
-                          env_raster = test_cases_2$`Parnassius clodius`$env_data[[2]])
+saveRDS(full, "./output/clodius_new_ev.rds")
