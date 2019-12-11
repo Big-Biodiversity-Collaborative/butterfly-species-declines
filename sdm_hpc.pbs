@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# NOTE: this script is an example - it worked on a smaller version of this project
+# when things were structured different. It will need to be reconfigured for the 
+# newer dev version. 
+
+#PBS -N sdm_test_script
+#PBS -W group_list=klprudic
+#PBS -m bea
+#PBS -M keatonwilson@email.arizona.edu
+#PBS -q standard
+#PBS -l select=1:ncpus=30:mem=1260gb:pcmem=42gb
+#PBS -l walltime=24:0:0
+
+module load java/1.8 proj/4 gdal geos R
+R CMD javareconf -e
+export R_JAVA_LD_LIBRARY_PATH=${JAVA_HOME}/jre/lib/amd64/server
+
+cd ~/sdm_hpc
+Rscript sdm_function.R

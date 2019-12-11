@@ -8,65 +8,104 @@ require(raster)
 require(tidyverse)
 require(parallel)
 
+# List of operations and associated functions
+# 1. Prepping data - prep_data
+source("./R/prep_data.R")
+# 2. Running blockCV - run_block_cv
+source("./R/run_block_cv.R")
+# 3. Prepping Data more - prep_data_2
+source("./R/prep_data_2.R.R")
+# 4. Training and testing split - train_test_split
+source("./R/train_test_split.R")
+# 5. Modeling - model_func
+source("./R/model_func.R")
+# 6. Evaluation plots - eval_plots
+source("./R/eval_plots.R")
+# 7. Choosing the best model - best_mod
+source("./R/best_mod.R")
+# 8. Evaluating the best model - evaluate_models
+source("./R/evaluate_models.R")
+# 9. Extracting arguments from the best model - make_args
+source("./R/make_args.R")
+# 10. Building the full model on all data - full_model
+source("./R/full_model.R")
+
+# Creating a new folder to house individual lists/stuff in
+dir.create("./output/")
+
+# importing env rasters into the workspace
+bv_t1 = readRDS("./data/bioclim_t1.rds")
+bv_t2 = readRDS("./data/bioclim_t2.rds")
 
 # Full master function - calls other functions in the pipieline and steps through
 # the whole analysis of multiple species over the two time periods. 
 
 build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2, num_cores = NULL){
   # Setting seed for reproducibility
-  
-  set.seed(42)
+    set.seed(42)
   
   # QC to make sure we have enough records for each species
   data_summary = multi_species_df %>%
+    mutate(year = lubridate::year(date)) %>%
     filter(!is.na(year)) %>%
     mutate(time_frame = ifelse(year > 1999, "T1", "T2")) %>%
-    group_by(true_name, time_frame) %>%
-    summarize(n = n()) 
+    group_by(name, time_frame) %>%
+    summarize(n = n()) %>%
+    print(n = 50)
   
-  if(any(data_summary$n < 10)) {
-    
-    offender_list = data_summary %>%
-      filter(n <= 10) %>%
-      select(true_name) %>%
-      pull()
-    
-    print(paste("Removing species (", offender_list,") as these species have less than 10 records for a given period"))
-    
-    # Defining not-in funcion
-    '%!in%' <- function(x,y)!('%in%'(x,y))
-    
-    multi_species_df = multi_species_df %>% 
-      filter(true_name %!in% offender_list)
-    
-    
-  }
+  invisible(readline(prompt="Do this data summary look reasonable?
+Check to make sure you have enough data for each species to continue.
+Press [enter] to continue"))
+  
   
   # split multi-species dataframe into a list
-  butt_list = split(multi_species_df, f = multi_species_df$true_name)
+  butt_list = split(multi_species_df, f = multi_species_df$name)
+  
+  #Writing each component of the list out to file
+  files = c()
+  for(i in 1:length(names(butt_list))) {
+    files[i] = paste0("./output/", names(butt_list)[i], ".rds")
+  }
+  
+  for(j in 1:length(names(butt_list))){
+    saveRDS(butt_list[[j]], files[j])
+  }
+  
+  #Paralell stuff
+  num_cores = detectCores() - 2
   
   # Iterating the prep_data function over the list of species dataframes
-  prepped_data_list = lapply(butt_list, 
-                             try(prep_data), 
+  # This overwrites original data to a list that incldues original data and new
+  # objects
+  file_list = as.list(list.files("./output", full.names=TRUE))
+  
+  prep_over_list = function(file_name){
+    data = readRDS(file_name)
+    prepped_data = prep_data(data = data, year_split = year_split,
                              env_raster_t1 = env_raster_t1, 
-                             env_raster_t2 = env_raster_t2, 
-                             year_split = year_split)
+                             env_raster_t2 = env_raster_t2)
+    data_list = list(data, prepped_data)
+    saveRDS(data_list, file_name)
+  }
+  
+  #using multi-core lapply 
+  mclapply(file_list, prep_over_list, mc.cores = num_cores)  
+  
   
   # Generating blockCV objects for each time period for each species and attaching to master list
   
-  for(i in 1:length(prepped_data_list)){
-    # initializing the list
-    block_list = list()
-    
-    # Calculating stuff
-    block_t1 = try(run_block_cv(prepped_data = prepped_data_list[[i]][[1]][[1]], 
-                                bv_raster = prepped_data_list[[i]][[2]][[1]]))
-    block_t2 = try(run_block_cv(prepped_data = prepped_data_list[[i]][[1]][[2]], 
-                                bv_raster = prepped_data_list[[i]][[2]][[2]]))
-    
-    block_list = list(t1_block = block_t1, t2_block = block_t2)
-    prepped_data_list[[i]]$blocks = block_list
+  block_over_list = function(filename){
+    data = readRDS(file_name)
+    block_t1 = try(run_block_cv(prepped_data = data[[2]][[1]][[1]], 
+                                bv_raster = data[[2]][[2]][[1]]))
+    block_t2 = try(run_block_cv(prepped_data = data[[2]][[1]][[2]], 
+                                bv_raster = data[[2]][[2]][[2]]))
+    data[[2]]$blocks = list(block_t1, block_t2)
+    saveRDS(data, file_name)
   }
+  
+  #using multi-core lapply
+  mclapply(file_list, block_over_list, mc.cores = num_cores)
   
   # Running second prepping data function
   
@@ -145,3 +184,69 @@ build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2,
   saveRDS(prepped_data_list, "./data/model_data_list.rds")
   doParallel::stopImplicitCluster()
 }
+
+
+# Testing
+
+#loading in multi-species
+
+test_df = read_csv("./data/candidate_occurences.csv")
+
+data_summary = multi_species_df %>%
+  mutate(year = lubridate::year(date)) %>%
+  filter(!is.na(year)) %>%
+  mutate(time_frame = ifelse(year > 1999, "T1", "T2")) %>%
+  group_by(name, time_frame) %>%
+  summarize(n = n()) %>%
+  print(n = 50)
+
+invisible(readline(prompt="Do this data summary look reasonable?
+Check to make sure you have enough data for each species to continue.
+Press [enter] to continue"))
+
+
+# split multi-species dataframe into a list
+butt_list = split(multi_species_df, f = multi_species_df$name)
+
+#Writing each component of the list out to file
+files = c()
+for(i in 1:length(names(butt_list))) {
+  files[i] = paste0("./output/", names(butt_list)[i], ".rds")
+}
+
+for(j in 1:length(names(butt_list))){
+  saveRDS(butt_list[[j]], files[j])
+}
+
+#Paralell stuff
+num_cores = detectCores() - 2
+
+# Iterating the prep_data function over the list of species dataframes
+file_list = as.list(list.files("./output", full.names=TRUE))
+
+prep_over_list = function(file_name){
+  data = readRDS(file_name)
+  prepped_data = prep_data(data = data, year_split = 2000,
+                           env_raster_t1 = bv_t1, 
+                           env_raster_t2 = bv_t2)
+  data_list = list(data, prepped_data)
+  saveRDS(data_list, file_name)
+}
+
+mclapply(file_list, prep_over_list, mc.cores = 2)  
+
+
+block_over_list = function(file_name){
+  data = readRDS(file_name)
+  block_t1 = try(run_block_cv(prepped_data = data[[2]][[1]][[1]], 
+                              bv_raster = data[[2]][[2]][[1]]))
+  block_t2 = try(run_block_cv(prepped_data = data[[2]][[1]][[2]], 
+                              bv_raster = data[[2]][[2]][[2]]))
+  data[[2]]$blocks = list(block_t1, block_t2)
+  saveRDS(data, file_name)
+}
+
+#using multi-core lapply
+mclapply(file_list, block_over_list, mc.cores = num_cores)
+
+### EDITS START BELOW HERE

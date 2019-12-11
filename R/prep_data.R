@@ -30,7 +30,8 @@ prep_data = function(data, year_split = 2000, env_raster_t1, env_raster_t2) {
   
   # selecting the pieces we want and separating by time
   small_data = data %>%
-    select(name = true_name, longitude, latitude, date, year) %>%
+    mutate(year = lubridate::year(date)) %>%
+    dplyr::select(name, longitude, latitude, date, year) %>%
     mutate(time_frame = ifelse(year < year_split, "t1", "t2"))
   
   # calculating extent of occurences
