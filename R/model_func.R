@@ -7,10 +7,18 @@
 require(tidyverse)
 require(ENMeval)
 
-
-# Function that takes training data, environmental rasters and information about
-# parallelization and builds and tunes SDMs. Will try maxnet algorithm first, 
-# and if that fails, the old maxent.jar
+#' Modeling using Maxent
+#' 
+#' Function that takes training data, environmental rasters and information 
+#' about parallelization and builds and tunes SDMs. Will try maxnet algorithm #' first, and if that fails, the old maxent.jar
+#' 
+#' @param data training data generated from the \code{\link{train_test_split}} function. 
+#' @param env_raster the cropped env_raster for a given species and time period. 
+#' @param num_cores the number of cores to use in parallelization
+#'  
+#' @return an ENMeval object - contains information on all of the modeling tuning and testing (internal cross validation)
+#' 
+#' @examples
 
 model_func = function(data = NULL, env_raster, num_cores = NULL) {
   data_occ = data %>%  #Generating occurence lat long

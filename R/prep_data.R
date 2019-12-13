@@ -9,8 +9,6 @@ require(raster)
 require(dismo)
 require(sp)
 
-# Prep function
-
 #' Initial prepping of occurence data to create SDMs
 #'
 #' @param data A dataframe outputted from the butt_obs script. Generated from 
