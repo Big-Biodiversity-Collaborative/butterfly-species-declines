@@ -12,5 +12,5 @@ background point generation, splitting data into training and testing data).
 4. Model evaluation  
 5. Predictions, maps and visualizations  
 
-There is also resources to run analyses in parallel UArizona's HPC (e.g. PBS 
+There are also resources to run analyses in parallel UArizona's HPC (e.g. PBS 
 scripts). 
