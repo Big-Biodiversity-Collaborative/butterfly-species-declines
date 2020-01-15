@@ -40,40 +40,17 @@ bv_t2 = readRDS("./data/bioclim_t2.rds")
 # Full master function - calls other functions in the pipieline and steps through
 # the whole analysis of multiple species over the two time periods. 
 
-build_sdm = function(multi_species_df, year_split, env_raster_t1, env_raster_t2, num_cores = NULL){
+build_sdm = function(multi_species_df, 
+                     year_split, 
+                     env_raster_t1, 
+                     env_raster_t2, 
+                     num_cores = NULL,
+                     year_split){
+  
   # Setting seed for reproducibility
     set.seed(42)
   
-  # QC to make sure we have enough records for each species
-  data_summary = multi_species_df %>%
-    mutate(year = lubridate::year(date)) %>%
-    filter(!is.na(year)) %>%
-    mutate(time_frame = ifelse(year > 1999, "T1", "T2")) %>%
-    group_by(name, time_frame) %>%
-    summarize(n = n()) %>%
-    print(n = 50)
-  
-  invisible(readline(prompt="Do this data summary look reasonable?
-Check to make sure you have enough data for each species to continue.
-Press [enter] to continue"))
-  
-  
-  # split multi-species dataframe into a list
-  butt_list = split(multi_species_df, f = multi_species_df$name)
-  
-  #Writing each component of the list out to file
-  files = c()
-  for(i in 1:length(names(butt_list))) {
-    files[i] = paste0("./output/", names(butt_list)[i], ".rds")
-  }
-  
-  for(j in 1:length(names(butt_list))){
-    saveRDS(butt_list[[j]], files[j])
-  }
-  
-  #Paralell stuff
-  num_cores = detectCores() - 2
-  
+
   # Iterating the prep_data function over the list of species dataframes
   # This overwrites original data to a list that incldues original data and new
   # objects
