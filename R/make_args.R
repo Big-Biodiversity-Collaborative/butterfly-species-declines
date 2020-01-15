@@ -4,7 +4,19 @@
 # 2019-11-25
 
 
-make.args <- function(RMvalues=seq(0.5, 4, 0.5), fc=c("L", "LQ", "H", "LQH", "LQHP", "LQHPT"), labels=FALSE) {
+#' make_args - creates appropriate arguments that come from ENMeval to generate 
+#' final model based on the parameters of the 'best model' before building the 
+#' final model
+#'
+#' @param RMvalues regularization multiplier values
+#' @param fc feature classes
+#' @param labels labels as true or false
+#'
+#' @return
+#' @export
+#'
+#' @examples
+make_args <- function(RMvalues=seq(0.5, 4, 0.5), fc=c("L", "LQ", "H", "LQH", "LQHP", "LQHPT"), labels=FALSE) {
   
   other.args <- c("noaddsamplestobackground", "noremoveDuplicates", "noautofeature")
   args.list <- list()

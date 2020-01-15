@@ -8,13 +8,14 @@ require(ENMeval)
 
 #' Model Selection
 #' 
-#' \code{best_mod} chooses the best model from the large ENMeval object of all models, based on the highest AUC value for test data. 
+#' \code{best_mod} chooses the best model from the large ENMeval object of all 
+#' models, based on the highest AUC value for test data. 
 #'
 #' @param model_obj A model object generated from the \code{\link{model_func}}.
 #'
 #' @return A list two elements long. The first item contains the full model 
-#' model object of the best model as well as the index of the best model 
-#' to reference back to all models in the full ENMeval object. 
+#' model object of the best model and the second item is the index of the best 
+#' model to reference back to all models in the full ENMeval object. 
 #'
 #' @examples
 

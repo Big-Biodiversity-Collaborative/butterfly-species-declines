@@ -7,6 +7,19 @@
 require(tidyverse)
 
 
+#' train_test_split
+#'A small function that separates a data set of occurence and environmental data
+#'into training and test sets
+#' @param extra_prepped_data input data generated from the 
+#' \code{\link{prep_data_2}} function.
+#' @param blocked_obj a blockCV object generated from the 
+#' \code{\link{run_block_cv}} function
+#'
+#' @return a list two items long, the first being the training data and the 
+#' second being the test data
+#' @export
+#'
+#' @examples
 train_test_split = function(extra_prepped_data, blocked_obj){
   
   extract_index = function(list_of_folds = NULL) {
