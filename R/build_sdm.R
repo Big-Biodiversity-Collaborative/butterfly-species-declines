@@ -30,9 +30,6 @@ source("./R/make_args.R")
 # 10. Building the full model on all data - full_model
 source("./R/full_model.R")
 
-# Creating a new folder to house individual lists/stuff in
-dir.create("./output/")
-
 # importing env rasters into the workspace
 bv_t1 = readRDS("./data/bioclim_t1.rds")
 bv_t2 = readRDS("./data/bioclim_t2.rds")
@@ -40,7 +37,7 @@ bv_t2 = readRDS("./data/bioclim_t2.rds")
 # Full master function - calls other functions in the pipieline and steps through
 # the whole analysis of multiple species over the two time periods. 
 
-build_sdm = function(multi_species_df, 
+build_sdm = function(filename, 
                      year_split, 
                      env_raster_t1, 
                      env_raster_t2, 
@@ -50,7 +47,6 @@ build_sdm = function(multi_species_df,
   # Setting seed for reproducibility
     set.seed(42)
   
-
   # Iterating the prep_data function over the list of species dataframes
   # This overwrites original data to a list that incldues original data and new
   # objects
