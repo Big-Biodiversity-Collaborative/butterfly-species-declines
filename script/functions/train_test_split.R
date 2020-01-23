@@ -41,7 +41,7 @@ train_test_split = function(extra_prepped_data, blocked_obj){
   test_data = extra_prepped_data[-indices[[2]],] %>%
     drop_na()
   
-  return(list(training_data = training_data, 
-              test_data = test_data))
+  return(list("training_data" = training_data, 
+              "test_data" = test_data))
 }
 
