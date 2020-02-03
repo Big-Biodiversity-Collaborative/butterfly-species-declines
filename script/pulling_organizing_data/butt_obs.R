@@ -24,6 +24,7 @@ can_joins = candidates %>%
 #fuction to feed in dataframe and build a dataframe with all of the gbif
 #records
 names = can_joins$gbif_name
+names_small = names[c(1,2,4,6)]
 
 butt_obs = function(names){
   df = data.frame()
@@ -41,7 +42,7 @@ butt_obs = function(names){
 }
 
 #Running function above
-butterfly_data = butt_obs(names)
+butterfly_data = butt_obs(names_small)
 
 # Will need to do some duplicate removal
 butterfly_data_clean = butterfly_data %>%

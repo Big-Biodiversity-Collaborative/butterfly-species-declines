@@ -10,25 +10,25 @@ require(parallel)
 
 # List of operations and associated functions
 # 1. Prepping data - prep_data
-source("./R/prep_data.R")
+source("./script/functions/prep_data.R")
 # 2. Running blockCV - run_block_cv
-source("./R/run_block_cv.R")
+source("./script/functions/run_block_cv.R")
 # 3. Prepping Data more - prep_data_2
-source("./R/prep_data_2.R.R")
+source("./script/functions/prep_data_2.R")
 # 4. Training and testing split - train_test_split
-source("./R/train_test_split.R")
+source("./script/functions/train_test_split.R")
 # 5. Modeling - model_func
-source("./R/model_func.R")
+source("./script/functions/model_func.R")
 # 6. Evaluation plots - eval_plots
-source("./R/eval_plots.R")
+source("./script/functions/eval_plots.R")
 # 7. Choosing the best model - best_mod
-source("./R/best_mod.R")
+source("./script/functions/best_mod.R")
 # 8. Evaluating the best model - evaluate_models
-source("./R/evaluate_models.R")
+source("./script/functions/evaluate_models.R")
 # 9. Extracting arguments from the best model - make_args
-source("./R/make_args.R")
+source("./script/functions/make_args.R")
 # 10. Building the full model on all data - full_model
-source("./R/full_model.R")
+source("./script/functions/full_model.R")
 
 # importing env rasters into the workspace
 bv_t1 = readRDS("./data/bioclim_t1.rds")
@@ -57,7 +57,8 @@ build_sdm = function(filename,
                      env_raster_t1, 
                      env_raster_t2,
                      year_split, 
-                     full_or_minimal = "full"){
+                     full_or_minimal = "full",
+                     cores = NULL){
   
   # Setting seed for reproducibility
   set.seed(42)
@@ -75,11 +76,12 @@ build_sdm = function(filename,
     rm(raw_data)
     rm(prepped_data)
     
+    
   # Block CV for each time piece 
-    block_t1 = try(run_block_cv(prepped_data = master_list[[2]][[1]], 
-                                  bv_raster = master_list[[2]][[3]]))
-    block_t2 = try(run_block_cv(prepped_data = master_list[[2]][[2]], 
-                                  bv_raster = master_list[[2]][[4]]))
+    block_t1 = try(run_block_cv(prepped_data = master_list[[2]][[1]][[1]], 
+                                  bv_raster = master_list[[2]][[2]][[1]]))
+    block_t2 = try(run_block_cv(prepped_data = master_list[[2]][[1]][[2]], 
+                                  bv_raster = master_list[[2]][[2]][[2]]))
   # writing block objects to data list
     master_list$block_objs = list("block_t1" = block_t1, 
                                   "block_t2" = block_t2)
@@ -87,10 +89,10 @@ build_sdm = function(filename,
     rm(block_t2)
     
   # Second round of data prep - 
-    prepped_2_t1 = try(prep_data_2(data = master_list[[2]][[1]], 
-                                    env_raster = master_list[[2]][[3]]))
-    prepped_2_t2 = try(prep_data_2(data = master_list[[2]][[2]], 
-                                   env_raster = master_list[[2]][[4]]))
+    prepped_2_t1 = try(prep_data_2(data = master_list[[2]][[1]][[1]], 
+                                    env_raster = master_list[[2]][[2]][[1]]))
+    prepped_2_t2 = try(prep_data_2(data = master_list[[2]][[1]][[2]], 
+                                   env_raster = master_list[[2]][[2]][[2]]))
     master_list$extra_prepped = list("extra_prepped_t1" = prepped_2_t1, 
                                      "extra_prepped_t2" = prepped_2_t2)
     rm(prepped_2_t1)
@@ -110,23 +112,30 @@ build_sdm = function(filename,
     
   # Setting up internal parallelization within a single species for model 
   # building
+  if(is.null(cores)){
     total_cores = parallel::detectCores()
     to_use = total_cores - 2
     doParallel::registerDoParallel(to_use)
+  } else {
+    to_use = cores
+    doParallel::registerDoParallel(to_use)
+  }
     
   # Modeling
-    models_t1 = try(model_func(data = master_list$train_test$train_test_t1, 
-                                 env_raster = master_list$prepped_data[[3]],
+    models_t1 = try(model_func(data = master_list$train_test$train_test_t1$training_data, 
+                                 env_raster = master_list$prepped_data$env_data[[1]],
                                  num_cores = to_use))
-    models_t2 = try(model_func(data = master_list$train_test$train_test_t2, 
-                                 env_raster = master_list$prepped_data[[4]],
+    models_t2 = try(model_func(data = master_list$train_test$train_test_t2$training_data, 
+                                 env_raster = master_list$prepped_data$env_data[[2]],
                                  num_cores = to_use))
   # Writing to master list
     master_list$model_objs = list("models_t1" = models_t1, 
                                     "models_t2" = models_t2)
     rm(models_t1)
     rm(models_t2)
-  
+    
+    browser()
+    
   # Model selection
     best_mod_t1 = try(best_mod(model_obj = master_list$model_objs$models_t1))
     best_mod_t2 = try(best_mod(model_obj = master_list$model_objs$models_t2))
@@ -135,7 +144,9 @@ build_sdm = function(filename,
                                  "best_mod_t2" = best_mod_t2)
     rm(best_mod_t1)
     rm(best_mod_t2)
-  
+    
+    browser()
+    
   # evaluating models on test data
     ev_t1 = try(evaluate_models(test_data = master_list$train_test_t1[[2]],
                                 model = master_list$best_mod_t1[[1]],
@@ -148,6 +159,8 @@ build_sdm = function(filename,
                                  "eval_t2" = ev_t2)
     rm(ev_t1)
     rm(ev_t2)
+    
+    browser()
     
   # Building full models on all data
     full_mod_t1 = try(full_model(models_obj = master_list$model_objs$models_t1,
@@ -165,6 +178,7 @@ build_sdm = function(filename,
     rm(full_mod_t1)
     rm(full_mod_t2)
   
+    browser()
   # slimming down list if minimal is selected in function argument
     if(full_or_minimal == "minimal"){
       master_list = master_list[[c(1,8,9)]]
@@ -172,3 +186,4 @@ build_sdm = function(filename,
     
     return(master_list)
 }
+

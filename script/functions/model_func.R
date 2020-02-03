@@ -20,7 +20,7 @@ require(ENMeval)
 #' 
 #' @examples
 
-model_func = function(data = NULL, env_raster, num_cores = NULL) {
+model_func = function(data = NULL, env_raster, num_cores = to_use) {
   data_occ = data %>%  #Generating occurence lat long
     filter(Species == 1) %>%
     dplyr::select(longitude, latitude) %>%

@@ -3,6 +3,7 @@
 # Keaton Wilson
 # keatonwilson@me.com
 # 2020-01-15 
+library(stringr)
 
 #' split_multi_occ 
 #' Splits a multi-species dataframe of occurence data into dataframes for each 
@@ -17,7 +18,7 @@
 #' @export
 #'
 #' @examples
-split_multi_occ = function(multi_species_df){
+split_multi_occ = function(multi_species_df, year_split){
 # QC to make sure we have enough records for each species
 data_summary = multi_species_df %>%
   mutate(year = lubridate::year(date)) %>%
@@ -31,6 +32,8 @@ invisible(readline(prompt="Does this data summary look reasonable?
   Check to make sure you have enough data for each species to continue.
   Press [enter] to continue"))
 
+#making a new directory
+dir.create('./data/split_data')
 
 # split multi-species dataframe into a list
 butt_list = split(multi_species_df, f = multi_species_df$name)
@@ -38,10 +41,14 @@ butt_list = split(multi_species_df, f = multi_species_df$name)
 #Writing each component of the list out to rds file
 files = c()
 for(i in 1:length(names(butt_list))) {
-  files[i] = paste0("./split_data/", names(butt_list)[i], ".rds")
+  files[i] = paste0("./data/split_data/", 
+                    str_replace(str_to_lower(names(butt_list)[i]), " ", "_"), 
+                    ".rds")
 }
 
-}
 for(j in 1:length(names(butt_list))){
   saveRDS(butt_list[[j]], files[j])
 }
+
+}
+
