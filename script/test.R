@@ -69,3 +69,25 @@ java_test = ENMevaluate(occ = train_test$training_data %>%
                        numCores = to_use,
                        algorithm = 'maxent.jar')
 
+bm = best_mod(java_test)
+
+ev_test = evaluate_models(test_data = train_test$test_data,
+                          model = bm[[1]], 
+                          env_raster = prepped$env_data[[1]])
+
+auc_mod = java_test@results[4,]
+FC_best = tolower(as.character(auc_mod$fc[1]))
+rm_best = auc_mod$rm
+
+
+
+full_mod = full_model(java_test, 
+                      bm[[2]], 
+                      full_data = prepped_2,
+                      env_raster = prepped$env_data[[1]])
+
+
+full_test = full_model(java_test,
+                       bm[[2]],
+                       full_data = prepped_2, 
+                       env_raster = prepped$env_data[[1]])

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#PBS -q standard
+#PBS -l select=1:ncpus=10:mem=60gb:pcmem=6gb
+#PBS -N SPECIES
+#PBS -W group_list=klprudic
+#PBS -l place=pack:shared
+#PBS -l walltime=06:00:00
+#PBS -j oe
+#PBS -M keatonwilson@email.arizona.edu
+#PBS -m bea
+
+module load java/1.8 proj/4 gdal geos R
+R CMD javareconf -e
+export R_JAVA_LD_LIBRARY_PATH=${JAVA_HOME}/jre/lib/amd64/server
+
+cd /extra/keatonwilson/butterfly-species-declines/
+Rscript script/build_sdm.R 

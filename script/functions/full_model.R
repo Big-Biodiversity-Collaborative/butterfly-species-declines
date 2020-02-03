@@ -35,11 +35,11 @@ full_model = function(models_obj, best_model_index, full_data = NULL,
   
   auc_mod = models_obj@results[best_model_index,]
   FC_best = tolower(as.character(auc_mod$fc[1]))
-  rm_best = auc_mod$rm
+  rm_best = as.numeric(auc_mod$rm)
   
   
-  maxent.args = make.args(RMvalues = rm_best, fc = FC_best)
-  
+  # maxent.args = make.args(RMvalues = rm_best, fc = FC_best)
+  # 
   # re calculating environmental raster
   
   

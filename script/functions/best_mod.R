@@ -20,7 +20,7 @@ require(ENMeval)
 #' @examples
 
 best_mod = function(model_obj){
-  best_index = as.numeric(row.names(model_obj@results[which(model_obj@results$auc.test.avg== max(model_obj@results$auc.test.avg)),]))[1]
+  best_index = as.numeric(row.names(model_obj@results[which(model_obj@results$auc.test.avg== max(model_obj@results$auc.test.avg, na.rm = TRUE)),]))[1]
   
   best_model = model_obj@models[[best_index]]
   return(list(best_model, best_index))
