@@ -7,6 +7,7 @@
 require(raster)
 require(ENMeval)
 require(maxnet)
+source("./script/functions/make_args.R")
 
 
 #' full_model - function to build out full model on all data after 
@@ -38,17 +39,30 @@ full_model = function(models_obj, best_model_index, full_data = NULL,
   rm_best = as.numeric(auc_mod$rm)
   
   
-  # maxent.args = make.args(RMvalues = rm_best, fc = FC_best)
+  # maxent.args = make_args(RMvalues = rm_best, fc = FC_best)
   # 
   # re calculating environmental raster
   
   
   # full_mod = maxent(env_raster, as.matrix(full_data[,1:2]), args = maxent.args[[1]])
-  full_mod = maxnet(p = full_data$Species, data = full_data[,1:19],
-                    maxnet.formula(full_data$Species, 
-                                   full_data[,1:19], 
-                                   classes = FC_best), 
-                    regmult = rm_best)
+  full_mod = try(maxnet(p = full_data$Species, data = full_data[,1:19],
+                        maxnet.formula(full_data$Species, 
+                                       full_data[,1:19], 
+                                       classes = FC_best), 
+                        regmult = rm_best))
+  if (class(full_mod) == "try-error") {
+    cat("Caught an error running maxnet, trying maxent")
+    
+    FC_best = as.character(auc_mod$fc[1])
+    maxent.args = make_args(RMvalues = rm_best, fc = FC_best)[[1]]
+    
+    
+    full_mod = try(dismo::maxent(p = full_data$Species, x = full_data[,1:19],
+                                 args = maxent.args))  
+  }
+  
   return(full_mod)
   
-}
+  
+  
+}  

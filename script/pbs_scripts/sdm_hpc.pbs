@@ -4,7 +4,7 @@
 # when things were structured different. It will need to be reconfigured for the
 # newer dev version.
 
-#PBS -N sdm_hpc.pbs.3
+#PBS -N sdm_hpc.pbs.7
 #PBS -W group_list=klprudic
 #PBS -m bea
 #PBS -M keatonwilson@email.arizona.edu
@@ -13,9 +13,9 @@
 #PBS -l walltime=24:0:0
 #PBS -j oe
 
-module load java/1.8 proj/4 gdal geos R
+module load java/1.8 proj/5/5.2.0 gdal/2/2.4.2 geos/3.5/3.5.1 R
 R CMD javareconf -e
 export R_JAVA_LD_LIBRARY_PATH=${JAVA_HOME}/jre/lib/amd64/server
 
 cd /extra/keatonwilson/butterfly-species-declines/
-Rscript script/master_test.R
+Rscript ./script/master.R

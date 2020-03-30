@@ -134,8 +134,6 @@ build_sdm = function(filename,
     rm(models_t1)
     rm(models_t2)
     
-    browser()
-    
   # Model selection
     best_mod_t1 = try(best_mod(model_obj = master_list$model_objs$models_t1))
     best_mod_t2 = try(best_mod(model_obj = master_list$model_objs$models_t2))
@@ -145,40 +143,36 @@ build_sdm = function(filename,
     rm(best_mod_t1)
     rm(best_mod_t2)
     
-    browser()
-    
   # evaluating models on test data
-    ev_t1 = try(evaluate_models(test_data = master_list$train_test_t1[[2]],
-                                model = master_list$best_mod_t1[[1]],
-                                env_raster = master_list$prepped_data[[3]]))
-    ev_t2 = try(evaluate_models(test_data = master_list$train_test_t2[[2]],
-                                model = master_list$best_mod_t2[[1]],
-                                env_raster = master_list$prepped_data[[4]]))
+    ev_t1 = try(evaluate_models(test_data = master_list$train_test$train_test_t1$test_data,
+                                model = master_list$best_mods$best_mod_t1[[1]],
+                                env_raster = master_list$prepped_data$env_data[[1]]))
+    ev_t2 = try(evaluate_models(test_data = master_list$train_test$train_test_t2$test_data,
+                                model = master_list$best_mods$best_mod_t2[[1]],
+                                env_raster = master_list$prepped_data$env_data[[2]]))
   # Writing evaluate objects to master list  
     master_list$eval_objs = list("eval_t1" = ev_t1, 
                                  "eval_t2" = ev_t2)
     rm(ev_t1)
     rm(ev_t2)
     
-    browser()
     
   # Building full models on all data
     full_mod_t1 = try(full_model(models_obj = master_list$model_objs$models_t1,
                                  best_model_index = master_list$best_mods$best_mod_t1[[2]],
-                                 full_data = master_list$prepped_data[[1]],
-                                 env_raster = master_list$prepped_data[[2]]))
+                                 full_data = master_list$extra_prepped$extra_prepped_t1,
+                                 env_raster = master_list$prepped_data$env_data[[1]]))
     
     full_mod_t2 = try(full_model(models_obj = master_list$model_objs$models_t2,
                                  best_model_index = master_list$best_mods$best_mod_t2[[2]],
-                                 full_data = master_list$prepped_data[[2]],
-                                 env_raster = master_list$prepped_data[[4]]))
+                                 full_data = master_list$extra_prepped$extra_prepped_t2,
+                                 env_raster = master_list$prepped_data$env_data[[2]]))
   # Writing full model objs to master list  
     master_list$full_mods = list("full_mod_t1" = full_mod_t1, 
                                  "full_mod_t2" = full_mod_t2)
     rm(full_mod_t1)
     rm(full_mod_t2)
-  
-    browser()
+    
   # slimming down list if minimal is selected in function argument
     if(full_or_minimal == "minimal"){
       master_list = master_list[[c(1,8,9)]]
@@ -186,4 +180,5 @@ build_sdm = function(filename,
     
     return(master_list)
 }
+
 

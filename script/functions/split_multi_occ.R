@@ -3,7 +3,9 @@
 # Keaton Wilson
 # keatonwilson@me.com
 # 2020-01-15 
-library(stringr)
+require(stringr)
+require(tidyverse)
+
 
 #' split_multi_occ 
 #' Splits a multi-species dataframe of occurence data into dataframes for each 
@@ -35,8 +37,11 @@ invisible(readline(prompt="Does this data summary look reasonable?
 #making a new directory
 dir.create('./data/split_data')
 
+#pulling out src_name
+df = multi_species_df %>%
+  select(-src_name)
 # split multi-species dataframe into a list
-butt_list = split(multi_species_df, f = multi_species_df$name)
+butt_list = split(df, f = df$name)
 
 #Writing each component of the list out to rds file
 files = c()
@@ -51,4 +56,3 @@ for(j in 1:length(names(butt_list))){
 }
 
 }
-
