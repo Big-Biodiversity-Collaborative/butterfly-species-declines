@@ -26,11 +26,9 @@ can_joins = candidates %>%
 #records
 names = can_joins$gbif_name
 names = str_replace(names, " \\(eriphyle\\)", "")
-<<<<<<< HEAD
 names = str_replace(names, "Everes", "Cupido")
-=======
->>>>>>> 3761d718b6c18013f2220c5b93661d9297aa57d3
-names_small = names[c(2,17)]
+
+names_small = names[c(3,8)]
 
 butt_obs = function(names){
   df = data.frame()
@@ -41,7 +39,6 @@ butt_obs = function(names){
               geometry = c(-140, 20, -90, 60))
 
     sub_gbif_df = sub$gbif$data[[1]] %>%
-<<<<<<< HEAD
       dplyr::select(longitude, latitude, src_name = species, date = eventDate, key) %>%
       mutate(key = as.numeric(key)) %>%
       mutate(prov = "gbif") %>%
@@ -55,7 +52,7 @@ butt_obs = function(names){
              key = as.numeric(key)) %>%
       mutate(prov = "inat") %>%
       mutate(name = names[i])
-=======
+
       dplyr::select(longitude, latitude, name = species, date = eventDate, key) %>%
       mutate(key = as.numeric(key)) %>%
       mutate(prov = "gbif")
@@ -66,7 +63,7 @@ butt_obs = function(names){
              latitude = as.numeric(latitude), 
              key = as.numeric(key)) %>%
       mutate(prov = "inat")
->>>>>>> 3761d718b6c18013f2220c5b93661d9297aa57d3
+
     
     df = bind_rows(sub_gbif_df, sub_inat_df, df)
     
@@ -75,14 +72,13 @@ butt_obs = function(names){
 }
 
 #Running function above
-butterfly_data = butt_obs(names)
+butterfly_data = butt_obs(names_small)
 
 # Will need to do some duplicate removal
 butterfly_data_clean = butterfly_data %>%
   mutate(longitude = as.numeric(longitude), 
          latitude = as.numeric(latitude),
          name = word(name, 1, 2)) %>%
-<<<<<<< HEAD
   distinct(longitude, latitude, date, name, .keep_all = TRUE) %>%
   drop_na()
 
@@ -124,8 +120,8 @@ butterfly_data_clean = butterfly_data %>%
 # # Pieris marginalis is showing up in the records from the pull, but shouldn't be in there when we examine the candidate species
 # butterfly_data_clean = butterfly_data_clean %>%
 #   filter(name != "Pieris marginalis")
-=======
+
   distinct(longitude, latitude, date, name, .keep_all = TRUE) 
->>>>>>> 3761d718b6c18013f2220c5b93661d9297aa57d3
+
 
 write_csv(butterfly_data_clean, './data/candidate_occurences.csv')
