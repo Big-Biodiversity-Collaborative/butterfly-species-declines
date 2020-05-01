@@ -2,6 +2,7 @@
 # Keaton Wilson
 # keatonwilson@email.arizona.edu
 # 2020-04-17
+# 
 
 # packages
 require(raster)
@@ -38,10 +39,10 @@ build_complete_sdm = function(path_to_rds_data){
   bioclim = readRDS("./data/bioclim_full.rds")
   
   # calculating extent of occurences
-  max_lat = ceiling(max(pieris$latitude))
-  min_lat = floor(min(pieris$latitude))
-  max_lon = ceiling(max(pieris$longitude))
-  min_lon = floor(min(pieris$longitude))
+  max_lat = ceiling(max(species$latitude))
+  min_lat = floor(min(species$latitude))
+  max_lon = ceiling(max(species$longitude))
+  min_lon = floor(min(species$longitude))
   
   # added a 1º buffer in every direction
   geographic_extent <- extent(x = c(min_lon-1, max_lon+1, min_lat-1, max_lat+1))
@@ -86,7 +87,7 @@ build_complete_sdm = function(path_to_rds_data){
   
   # modeling
   source("./script/functions/model_func.R")
-  species_full_mod = model_func(data = training_test_split$training_data, 
+  species_model_obj = model_func(data = training_test_split$training_data, 
                                env_raster = bioclim_cropped, 
                                num_cores = 10)
   
@@ -95,10 +96,10 @@ build_complete_sdm = function(path_to_rds_data){
   
   # evaluation
   species_mod_eval = evaluate_models(training_test_split$test_data, 
-                                     model = species_best_mod, 
+                                     model = species_best_mod[[1]], 
                                      env_raster = bioclim_cropped)
   # full model
-  species_full_mod = full_model(species_full_mod, 
+  species_full_mod = full_model(species_model_obj, 
                                 best_model_index = species_best_mod[[2]], 
                                 full_data = species_extra_prepped, 
                                 env_raster = bioclim_cropped)
