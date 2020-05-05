@@ -72,3 +72,16 @@ exploratory set of tools that work through a Monte Carlo procedure for
 comparing time periods in the 
 [monte_carlo_methods](./script/monte_carlo_methods) directory.
 
+For questions regarding this project and its content, please feel free to get 
+in touch with [Keaton Wilson](keatonwilson@me.com), 
+[Katy Prudic](klprudic@email.arizona.edu), or 
+[Jeff Oliver](jcoliver@email.arizona.edu). 
+
+This work is licensed under a [Creative Commons Attribution 4.0 International
+License][cc-by].
+
+[![CC BY 4.0][cc-by-image]][cc-by]
+
+[cc-by]: http://creativecommons.org/licenses/by/4.0/
+[cc-by-image]: https://i.creativecommons.org/l/by/4.0/88x31.png
+[cc-by-shield]: https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg
