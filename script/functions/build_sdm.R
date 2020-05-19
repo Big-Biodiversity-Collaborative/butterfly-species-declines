@@ -19,15 +19,13 @@ source("./script/functions/prep_data_2.R")
 source("./script/functions/train_test_split.R")
 # 5. Modeling - model_func
 source("./script/functions/model_func.R")
-# 6. Evaluation plots - eval_plots
-source("./script/functions/eval_plots.R")
-# 7. Choosing the best model - best_mod
+# 6. Choosing the best model - best_mod
 source("./script/functions/best_mod.R")
-# 8. Evaluating the best model - evaluate_models
+# 7. Evaluating the best model - evaluate_models
 source("./script/functions/evaluate_models.R")
-# 9. Extracting arguments from the best model - make_args
+# 8. Extracting arguments from the best model - make_args
 source("./script/functions/make_args.R")
-# 10. Building the full model on all data - full_model
+# 9. Building the full model on all data - full_model
 source("./script/functions/full_model.R")
 
 # importing env rasters into the workspace
