@@ -1,0 +1,24 @@
+---
+title: "data_readme"
+author: "Keaton Wilson"
+date: "5/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Overview  
+The data folder contains all of the necessary data (or provides directories to
+pipe data into from the scripts folder) for building SDMs.  
+
+1. .csv files are either occurence data or data related to initial exploration 
+of appropriate candidate species. The main file here is candidate occurences, 
+which is the main occurence data used to split into different species in the 
+split_data directory.  
+
+2. .rds files are compressed files related to environmental rasters or mapping. 
+bioclim_full.rds, bv_t2 and bv_t1 are the most important pieces here as they 
+are the gridded bioclim rasters for each time period (or the full summary with 
+bioclim_full.rds). 
